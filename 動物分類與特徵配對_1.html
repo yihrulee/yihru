@@ -1,0 +1,571 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動物界分類生物特徵與舉例配對遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
+            min-height: 100vh;
+        }
+        
+        .draggable {
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        
+        .draggable:active {
+            cursor: grabbing;
+            transform: scale(1.05);
+        }
+        
+        .drop-zone {
+            transition: all 0.3s;
+            min-height: 60px;
+        }
+        
+        .drop-zone.highlight {
+            background-color: rgba(144, 238, 144, 0.5);
+            transform: scale(1.02);
+        }
+        
+        .correct {
+            background-color: rgba(144, 238, 144, 0.7) !important;
+            border-color: #2e7d32 !important;
+        }
+        
+        .incorrect {
+            background-color: rgba(255, 99, 71, 0.3) !important;
+            border-color: #c62828 !important;
+        }
+        
+        .matched {
+            opacity: 0.6;
+            cursor: default;
+        }
+        
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 999;
+        }
+        
+        .animal-card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            margin-bottom: 1rem;
+            overflow: hidden;
+        }
+        
+        .animal-header {
+            background-color: #3b82f6;
+            color: white;
+            padding: 0.75rem;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .drop-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            padding: 0.75rem;
+        }
+        
+        .drop-label {
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+            color: #4b5563;
+        }
+    </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<style>
+@media (max-width: 768px) {
+  .grid-cols-1.md\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+  }
+  .p-4.md\:p-6 {
+    padding: 1rem !important;
+  }
+  .text-xl {
+    font-size: 1.25rem !important;
+  }
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  .text-3xl {
+    font-size: 1.75rem !important;
+  }
+  .p-6 {
+    padding: 1rem !important;
+  }
+  .p-3 {
+    padding: 0.5rem !important;
+  }
+  button {
+    font-size: 1.1rem;
+    padding: 0.6rem 1.2rem;
+  }
+}
+</style>
+
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
+        <header class="bg-teal-600 text-white p-6 text-center">
+            <h1 class="text-2xl md:text-3xl font-bold">動物界分類生物特徵與舉例配對遊戲</h1>
+            <p class="mt-2 text-teal-100">拖曳左側的特徵和右側的舉例到中間對應的動物分類</p>
+        </header>
+        
+        <div class="p-4 md:p-6">
+            <div class="flex justify-between items-center mb-6">
+                <div class="flex space-x-4">
+                    <button id="checkBtn" class="bg-teal-500 hover:bg-teal-600 text-white px-4 py-2 rounded-lg transition shadow-md">
+                        檢查答案
+                    </button>
+                    <button id="resetBtn" class="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg transition shadow-md">
+                        重新開始
+                    </button>
+                </div>
+                <div class="text-right">
+                    <span class="font-medium text-gray-700">正確: <span id="score" class="text-teal-600 font-bold">0</span>/<span id="total">22</span></span>
+                </div>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- 左側：特徵 -->
+                <div class="bg-green-50 p-4 rounded-lg border-2 border-green-200">
+                    <h2 class="text-xl font-bold text-green-800 mb-4 text-center">生物特徵</h2>
+                    <div id="characteristics" class="space-y-3">
+                        <!-- 特徵項目將由 JavaScript 生成 -->
+                    </div>
+                </div>
+                
+                <!-- 中間：動物分類 -->
+                <div class="bg-blue-50 p-4 rounded-lg border-2 border-blue-200">
+                    <h2 class="text-xl font-bold text-blue-800 mb-4 text-center">動物分類</h2>
+                    <div id="categories" class="space-y-4">
+                        <!-- 動物分類項目將由 JavaScript 生成 -->
+                    </div>
+                </div>
+                
+                <!-- 右側：舉例 -->
+                <div class="bg-purple-50 p-4 rounded-lg border-2 border-purple-200">
+                    <h2 class="text-xl font-bold text-purple-800 mb-4 text-center">舉例</h2>
+                    <div id="examples" class="space-y-3">
+                        <!-- 舉例項目將由 JavaScript 生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="resultModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+                <h2 id="resultTitle" class="text-2xl font-bold text-center mb-4"></h2>
+                <p id="resultMessage" class="text-center mb-6"></p>
+                <div class="flex justify-center">
+                    <button id="closeModal" class="bg-teal-500 hover:bg-teal-600 text-white px-6 py-2 rounded-lg transition shadow-md">
+                        關閉
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 動物分類資料
+            const animalData = [
+                {
+                    id: 1,
+                    category: "脊索動物門 - 哺乳綱",
+                    characteristic: "體表有毛髮，以肺呼吸，胎生，有乳腺哺育幼兒。",
+                    example: "人類、老鼠、鯨魚、蝙蝠"
+                },
+                {
+                    id: 2,
+                    category: "脊索動物門 - 鳥綱",
+                    characteristic: "體表有羽毛，前肢變成翅膀，以肺呼吸，卵生，有角質喙。",
+                    example: "麻雀、鴿子、老鷹、企鵝"
+                },
+                {
+                    id: 3,
+                    category: "脊索動物門 - 爬蟲綱",
+                    characteristic: "體表有鱗片或甲殼，以肺呼吸，卵生，體溫會隨環境變化。",
+                    example: "蛇、龜、鱷魚、蜥蜴"
+                },
+                {
+                    id: 4,
+                    category: "脊索動物門 - 兩生綱",
+                    characteristic: "幼體以鰓呼吸，成體以肺和皮膚呼吸，卵生，體表光滑多黏液。",
+                    example: "青蛙、蟾蜍、蠑螈"
+                },
+                {
+                    id: 5,
+                    category: "脊索動物門 - 魚綱",
+                    characteristic: "體表有鱗片，以鰓呼吸，卵生，有鰭輔助游泳。",
+                    example: "鯉魚、鯊魚、鰻魚、河豚"
+                },
+                {
+                    id: 6,
+                    category: "節肢動物門",
+                    characteristic: "身體分節，有外骨骼，有節肢，蛻皮生長。",
+                    example: "蝦、蟹、蜘蛛、蜜蜂、蝴蝶"
+                },
+                {
+                    id: 7,
+                    category: "軟體動物門",
+                    characteristic: "身體柔軟，多數有外殼，有外套膜，無體節。",
+                    example: "章魚、烏賊、蝸牛、蛤蜊"
+                },
+                {
+                    id: 8,
+                    category: "刺絲胞動物門",
+                    characteristic: "有刺細胞，體壁由外胚層和內胚層組成，輻射對稱。",
+                    example: "水母、珊瑚、海葵"
+                },
+                {
+                    id: 9,
+                    category: "扁形動物門",
+                    characteristic: "身體扁平，無體腔，消化系統不完整，雌雄同體。",
+                    example: "渦蟲、絛蟲、肝吸蟲"
+                },
+                {
+                    id: 10,
+                    category: "環節動物門",
+                    characteristic: "身體分節，有體腔，有完整的消化道，有分節的神經系統。",
+                    example: "蚯蚓、水蛭、沙蠶"
+                },
+                {
+                    id: 11,
+                    category: "棘皮動物門",
+                    characteristic: "成體具輻射對稱，有水管系統，體表有鈣質骨片，有管足。",
+                    example: "海星、海膽、海參、海百合"
+                }
+            ];
+            
+            // 打亂特徵與舉例的順序
+            const shuffledCharacteristics = [...animalData].sort(() => Math.random() - 0.5);
+            const shuffledExamples = [...animalData].sort(() => Math.random() - 0.5);
+            
+            // 生成動物分類元素
+            const categoriesContainer = document.getElementById('categories');
+            animalData.forEach(item => {
+                const categoryCard = document.createElement('div');
+                categoryCard.className = 'animal-card';
+                categoryCard.setAttribute('data-id', item.id);
+                
+                const categoryHeader = document.createElement('div');
+                categoryHeader.className = 'animal-header';
+                categoryHeader.textContent = item.category;
+                
+                const dropContainer = document.createElement('div');
+                dropContainer.className = 'drop-container';
+                
+                // 特徵放置區
+                const characteristicDropArea = document.createElement('div');
+                characteristicDropArea.className = 'flex flex-col';
+                
+                const characteristicLabel = document.createElement('div');
+                characteristicLabel.className = 'drop-label';
+                characteristicLabel.textContent = '特徵';
+                
+                const characteristicDropZone = document.createElement('div');
+                characteristicDropZone.className = 'drop-zone border-2 border-dashed border-green-300 p-2 rounded-md text-center text-gray-500 flex items-center justify-center';
+                characteristicDropZone.setAttribute('data-type', 'characteristic');
+                characteristicDropZone.setAttribute('data-category-id', item.id);
+                characteristicDropZone.textContent = '拖曳特徵到此處';
+                
+                characteristicDropArea.appendChild(characteristicLabel);
+                characteristicDropArea.appendChild(characteristicDropZone);
+                
+                // 舉例放置區
+                const exampleDropArea = document.createElement('div');
+                exampleDropArea.className = 'flex flex-col';
+                
+                const exampleLabel = document.createElement('div');
+                exampleLabel.className = 'drop-label';
+                exampleLabel.textContent = '舉例';
+                
+                const exampleDropZone = document.createElement('div');
+                exampleDropZone.className = 'drop-zone border-2 border-dashed border-purple-300 p-2 rounded-md text-center text-gray-500 flex items-center justify-center';
+                exampleDropZone.setAttribute('data-type', 'example');
+                exampleDropZone.setAttribute('data-category-id', item.id);
+                exampleDropZone.textContent = '拖曳舉例到此處';
+                
+                exampleDropArea.appendChild(exampleLabel);
+                exampleDropArea.appendChild(exampleDropZone);
+                
+                dropContainer.appendChild(characteristicDropArea);
+                dropContainer.appendChild(exampleDropArea);
+                
+                categoryCard.appendChild(categoryHeader);
+                categoryCard.appendChild(dropContainer);
+                
+                categoriesContainer.appendChild(categoryCard);
+                
+                // 添加拖放事件監聽器
+                characteristicDropZone.addEventListener('dragover', dragOver);
+                characteristicDropZone.addEventListener('dragleave', dragLeave);
+                characteristicDropZone.addEventListener('drop', drop);
+                
+                exampleDropZone.addEventListener('dragover', dragOver);
+                exampleDropZone.addEventListener('dragleave', dragLeave);
+                exampleDropZone.addEventListener('drop', drop);
+            });
+            
+            // 生成特徵元素
+            const characteristicsContainer = document.getElementById('characteristics');
+            shuffledCharacteristics.forEach((item) => {
+                const characteristicElement = document.createElement('div');
+                characteristicElement.className = 'draggable bg-white p-3 rounded-lg shadow border-2 border-green-300';
+                characteristicElement.setAttribute('draggable', 'true');
+                characteristicElement.setAttribute('data-id', item.id);
+                characteristicElement.setAttribute('data-type', 'characteristic');
+                characteristicElement.textContent = item.characteristic;
+                
+                characteristicElement.addEventListener('dragstart', dragStart);
+                characteristicElement.addEventListener('dragend', dragEnd);
+                characteristicsContainer.appendChild(characteristicElement);
+            });
+            
+            // 生成舉例元素
+            const examplesContainer = document.getElementById('examples');
+            shuffledExamples.forEach((item) => {
+                const exampleElement = document.createElement('div');
+                exampleElement.className = 'draggable bg-white p-3 rounded-lg shadow border-2 border-purple-300';
+                exampleElement.setAttribute('draggable', 'true');
+                exampleElement.setAttribute('data-id', item.id);
+                exampleElement.setAttribute('data-type', 'example');
+                exampleElement.textContent = item.example;
+                
+                exampleElement.addEventListener('dragstart', dragStart);
+                exampleElement.addEventListener('dragend', dragEnd);
+                examplesContainer.appendChild(exampleElement);
+            });
+            
+            // 拖曳相關函數
+            function dragStart(e) {
+                e.dataTransfer.setData('text/plain', this.getAttribute('data-id'));
+                e.dataTransfer.setData('text/type', this.getAttribute('data-type'));
+                e.dataTransfer.setData('text/content', this.textContent);
+                this.classList.add('opacity-50');
+            }
+            
+            function dragEnd(e) {
+                this.classList.remove('opacity-50');
+            }
+            
+            function dragOver(e) {
+                e.preventDefault();
+                // 只有當拖曳類型與放置區類型相符時才高亮顯示
+                const dragType = e.dataTransfer.getData('text/type') || e.dataTransfer.types.includes('text/type') ? 
+                                 e.dataTransfer.getData('text/type') : null;
+                
+                if (dragType === this.getAttribute('data-type') && !this.querySelector('.dropped-item')) {
+                    this.classList.add('highlight');
+                }
+            }
+            
+            function dragLeave(e) {
+                this.classList.remove('highlight');
+            }
+            
+            function drop(e) {
+                e.preventDefault();
+                this.classList.remove('highlight');
+                
+                const itemId = e.dataTransfer.getData('text/plain');
+                const itemType = e.dataTransfer.getData('text/type');
+                const itemContent = e.dataTransfer.getData('text/content');
+                const dropZoneType = this.getAttribute('data-type');
+                
+                // 確保類型匹配
+                if (itemType !== dropZoneType) return;
+                
+                // 如果已經有元素，則不允許放置
+                if (this.querySelector('.dropped-item')) return;
+                
+                const itemElement = document.querySelector(`.draggable[data-id="${itemId}"][data-type="${itemType}"]`);
+                
+                // 創建放置元素
+                const droppedItem = document.createElement('div');
+                if (itemType === 'characteristic') {
+                    droppedItem.className = 'dropped-item bg-green-100 p-2 rounded-md text-sm';
+                } else {
+                    droppedItem.className = 'dropped-item bg-purple-100 p-2 rounded-md text-sm';
+                }
+                
+                droppedItem.setAttribute('data-id', itemId);
+                droppedItem.textContent = itemContent;
+                
+                // 添加移除按鈕
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'ml-2 text-red-500 hover:text-red-700';
+                removeBtn.innerHTML = '❌';
+                removeBtn.onclick = function(e) {
+                    e.stopPropagation();
+                    itemElement.classList.remove('matched');
+                    droppedItem.remove();
+                    dropZone.textContent = itemType === 'characteristic' ? '拖曳特徵到此處' : '拖曳舉例到此處';
+                    dropZone.classList.remove('hidden');
+                };
+                
+                droppedItem.appendChild(removeBtn);
+                
+                // 清空並隱藏原始提示文字
+                this.textContent = '';
+                this.classList.add('hidden');
+                
+                // 將放置元素添加到放置區
+                this.parentNode.appendChild(droppedItem);
+                
+                // 標記原始元素為已匹配
+                itemElement.classList.add('matched');
+            }
+            
+            // 檢查答案
+            document.getElementById('checkBtn').addEventListener('click', function() {
+                let correctCount = 0;
+                const dropZones = document.querySelectorAll('.drop-zone');
+                
+                dropZones.forEach(dropZone => {
+                    const categoryId = dropZone.getAttribute('data-category-id');
+                    const dropType = dropZone.getAttribute('data-type');
+                    const droppedItem = dropZone.parentNode.querySelector('.dropped-item');
+                    
+                    // 移除之前的結果樣式
+                    if (droppedItem) {
+                        droppedItem.classList.remove('correct', 'incorrect');
+                    }
+                    
+                    if (droppedItem) {
+                        const droppedId = droppedItem.getAttribute('data-id');
+                        if (droppedId === categoryId) {
+                            droppedItem.classList.add('correct');
+                            correctCount++;
+                        } else {
+                            droppedItem.classList.add('incorrect');
+                        }
+                    }
+                });
+                
+                document.getElementById('score').textContent = correctCount;
+                
+                // 顯示結果
+                const resultModal = document.getElementById('resultModal');
+                const resultTitle = document.getElementById('resultTitle');
+                const resultMessage = document.getElementById('resultMessage');
+                
+                resultModal.classList.remove('hidden');
+                
+                if (correctCount === animalData.length * 2) {
+                    resultTitle.textContent = '恭喜！全部正確！';
+                    resultTitle.className = 'text-2xl font-bold text-center mb-4 text-green-600';
+                    resultMessage.textContent = '你已經完全掌握了動物分類的知識！';
+                    createConfetti();
+                } else {
+                    resultTitle.textContent = `得分：${correctCount}/${animalData.length * 2}`;
+                    resultTitle.className = 'text-2xl font-bold text-center mb-4 text-blue-600';
+                    resultMessage.textContent = '繼續努力！綠色表示正確，紅色表示錯誤。';
+                }
+            });
+            
+            // 關閉結果視窗
+            document.getElementById('closeModal').addEventListener('click', function() {
+                document.getElementById('resultModal').classList.add('hidden');
+            });
+            
+            // 重置遊戲
+            document.getElementById('resetBtn').addEventListener('click', function() {
+                const dropZones = document.querySelectorAll('.drop-zone');
+                const draggables = document.querySelectorAll('.draggable');
+                const droppedItems = document.querySelectorAll('.dropped-item');
+                
+                // 移除所有已放置的項目
+                droppedItems.forEach(item => {
+                    item.remove();
+                });
+                
+                // 重置所有放置區
+                dropZones.forEach(zone => {
+                    zone.classList.remove('hidden');
+                    const type = zone.getAttribute('data-type');
+                    zone.textContent = type === 'characteristic' ? '拖曳特徵到此處' : '拖曳舉例到此處';
+                });
+                
+                // 重置所有可拖曳項目
+                draggables.forEach(draggable => {
+                    draggable.classList.remove('matched', 'opacity-50');
+                });
+                
+                document.getElementById('score').textContent = '0';
+            });
+            
+            // 慶祝動畫
+            function createConfetti() {
+                const colors = ['#ff0000', '#00ff00', '#0000ff', '#ffff00', '#ff00ff', '#00ffff'];
+                
+                for (let i = 0; i < 100; i++) {
+                    const confetti = document.createElement('div');
+                    confetti.className = 'confetti';
+                    confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                    confetti.style.left = Math.random() * 100 + 'vw';
+                    confetti.style.top = -10 + 'px';
+                    confetti.style.width = Math.random() * 10 + 5 + 'px';
+                    confetti.style.height = Math.random() * 10 + 5 + 'px';
+                    document.body.appendChild(confetti);
+                    
+                    const animation = confetti.animate(
+                        [
+                            { transform: 'translateY(0) rotate(0deg)', opacity: 1 },
+                            { transform: `translateY(${window.innerHeight}px) rotate(${Math.random() * 360}deg)`, opacity: 0 }
+                        ],
+                        {
+                            duration: Math.random() * 3000 + 2000,
+                            easing: 'cubic-bezier(0.37, 0, 0.63, 1)'
+                        }
+                    );
+                    
+                    animation.onfinish = () => {
+                        confetti.remove();
+                    };
+                }
+            }
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93f81a97e2c4846a',t:'MTc0NzIwMTY3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const groupOptions = {
+    group: "dragmatch",
+    animation: 150,
+    ghostClass: "opacity-40",
+    dragClass: "opacity-70"
+  };
+
+  Sortable.create(document.getElementById("characteristics"), groupOptions);
+  Sortable.create(document.getElementById("examples"), groupOptions);
+
+  document.querySelectorAll(".drop-zone").forEach(zone => {
+    Sortable.create(zone, {
+      ...groupOptions,
+      sort: false
+    });
+  });
+});
+</script>
+
+</body>
+</html>

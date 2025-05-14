@@ -1,0 +1,456 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生物分類遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Microsoft JhengHei', 'PingFang TC', sans-serif;
+            background-color: #f0f9ff;
+        }
+        .organism-item {
+            cursor: grab;
+            transition: all 0.2s;
+        }
+        .organism-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .organism-item:active {
+            cursor: grabbing;
+        }
+        .category-container {
+            min-height: 120px;
+            transition: all 0.3s;
+        }
+        .category-container.drag-over {
+            background-color: rgba(147, 197, 253, 0.3);
+            box-shadow: inset 0 0 0 2px #3b82f6;
+        }
+        .correct {
+            background-color: rgba(134, 239, 172, 0.2);
+            border-color: #10b981 !important;
+        }
+        .incorrect {
+            background-color: rgba(252, 165, 165, 0.2);
+            border-color: #ef4444 !important;
+        }
+    </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+
+<style>
+@media (max-width: 768px) {
+  .text-xl {
+    font-size: 1.2rem !important;
+  }
+  .text-2xl {
+    font-size: 1.4rem !important;
+  }
+  .text-3xl {
+    font-size: 1.6rem !important;
+  }
+  .p-4 {
+    padding: 1rem !important;
+  }
+  .p-6 {
+    padding: 1.2rem !important;
+  }
+  .text-sm {
+    font-size: 1rem !important;
+  }
+  .rounded-md {
+    border-radius: 0.6rem !important;
+  }
+  button {
+    font-size: 1.05rem;
+    padding: 0.6rem 1.2rem;
+  }
+  #organisms-container {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+</style>
+
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <h1 class="text-3xl font-bold text-center text-blue-800 mb-6">生物分類遊戲</h1>
+        <p class="text-center mb-8 text-gray-700">將生物拖到適合的分類中，測試你的生物學知識！</p>
+        
+        <div class="flex flex-col md:flex-row gap-6 mb-8">
+            <div class="w-full md:w-1/2">
+                <div class="bg-white rounded-lg shadow-md p-4 mb-6">
+                    <h2 class="text-xl font-bold mb-4 text-blue-700">未分類生物</h2>
+                    <div id="organisms-container" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        <!-- 生物項目將由 JavaScript 動態生成 -->
+                    </div>
+                </div>
+                
+                <div class="bg-white rounded-lg shadow-md p-4">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-bold text-blue-700">遊戲進度</h2>
+                        <div class="flex gap-2">
+                            <button id="check-btn" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition">檢查答案</button>
+                            <button id="reset-btn" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition">重新開始</button>
+                        </div>
+                    </div>
+                    <div class="flex items-center mb-2">
+                        <div class="w-full bg-gray-200 rounded-full h-4">
+                            <div id="progress-bar" class="bg-blue-600 h-4 rounded-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <span id="progress-text" class="ml-3 text-gray-700 font-medium">0/63</span>
+                    </div>
+                    <div id="result-message" class="mt-4 text-center hidden"></div>
+                </div>
+            </div>
+            
+            <div class="w-full md:w-1/2 bg-white rounded-lg shadow-md p-4">
+                <h2 class="text-xl font-bold mb-4 text-blue-700">分類區域</h2>
+                
+                <div class="space-y-6">
+                    <!-- 無界 -->
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-2">無界</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">病毒</div>
+                                    <div id="無-病毒" data-kingdom="無" data-category="病毒" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 原核生物界 -->
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-2">原核生物界</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">細菌</div>
+                                    <div id="原核生物界-細菌" data-kingdom="原核生物界" data-category="細菌" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">藍綠菌</div>
+                                    <div id="原核生物界-藍綠菌" data-kingdom="原核生物界" data-category="藍綠菌" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 原生生物界 -->
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-2">原生生物界</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">眼蟲</div>
+                                    <div id="原生生物界-眼蟲" data-kingdom="原生生物界" data-category="眼蟲" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">藻</div>
+                                    <div id="原生生物界-藻" data-kingdom="原生生物界" data-category="藻" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">原生動物</div>
+                                    <div id="原生生物界-原生動物" data-kingdom="原生生物界" data-category="原生動物" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">原生菌</div>
+                                    <div id="原生生物界-原生菌" data-kingdom="原生生物界" data-category="原生菌" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 真菌界 -->
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-2">真菌界</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">酵母菌</div>
+                                    <div id="真菌界-酵母菌" data-kingdom="真菌界" data-category="酵母菌" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">黴菌</div>
+                                    <div id="真菌界-黴菌" data-kingdom="真菌界" data-category="黴菌" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">蕈</div>
+                                    <div id="真菌界-蕈" data-kingdom="真菌界" data-category="蕈" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 植物界 -->
+                    <div>
+                        <h3 class="font-bold text-gray-700 mb-2">植物界</h3>
+                        <div class="space-y-3">
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">蘚苔</div>
+                                    <div id="植物界-蘚苔" data-kingdom="植物界" data-category="蘚苔" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">蕨</div>
+                                    <div id="植物界-蕨" data-kingdom="植物界" data-category="蕨" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">裸子</div>
+                                    <div id="植物界-裸子" data-kingdom="植物界" data-category="裸子" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">被子雙子葉</div>
+                                    <div id="植物界-被子雙子葉" data-kingdom="植物界" data-category="被子雙子葉" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                            <div>
+                                <div class="flex items-center">
+                                    <div class="w-24 text-sm text-gray-600">被子單子葉</div>
+                                    <div id="植物界-被子單子葉" data-kingdom="植物界" data-category="被子單子葉" class="category-container flex-1 border-2 border-dashed border-gray-300 rounded-md p-2 flex flex-wrap gap-2"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 生物資料
+            const organisms = [
+                { name: '新冠肺炎病毒', kingdom: '無', category: '病毒' },
+                { name: '登革熱病毒', kingdom: '無', category: '病毒' },
+                { name: '金黃色葡萄球菌', kingdom: '原核生物界', category: '細菌' },
+                { name: '結核桿菌', kingdom: '原核生物界', category: '細菌' },
+                { name: '鉤端螺旋體', kingdom: '原核生物界', category: '細菌' },
+                { name: '瘤胃球菌', kingdom: '原核生物界', category: '細菌' },
+                { name: '乳酸菌', kingdom: '原核生物界', category: '細菌' },
+                { name: '色球藻', kingdom: '原核生物界', category: '藍綠菌' },
+                { name: '顫藻', kingdom: '原核生物界', category: '藍綠菌' },
+                { name: '念珠藻', kingdom: '原核生物界', category: '藍綠菌' },
+                { name: '眼蟲', kingdom: '原生生物界', category: '眼蟲' },
+                { name: '石蓴', kingdom: '原生生物界', category: '藻' },
+                { name: '昆布', kingdom: '原生生物界', category: '藻' },
+                { name: '石花菜', kingdom: '原生生物界', category: '藻' },
+                { name: '矽藻', kingdom: '原生生物界', category: '藻' },
+                { name: '巨藻', kingdom: '原生生物界', category: '藻' },
+                { name: '單胞藻', kingdom: '原生生物界', category: '藻' },
+                { name: '草履蟲', kingdom: '原生生物界', category: '原生動物' },
+                { name: '線鞭蟲', kingdom: '原生生物界', category: '原生動物' },
+                { name: '瘧原蟲', kingdom: '原生生物界', category: '原生動物' },
+                { name: '變形蟲', kingdom: '原生生物界', category: '原生動物' },
+                { name: '黏菌', kingdom: '原生生物界', category: '原生菌' },
+                { name: '酵母菌', kingdom: '真菌界', category: '酵母菌' },
+                { name: '黑黴菌', kingdom: '真菌界', category: '黴菌' },
+                { name: '青黴菌', kingdom: '真菌界', category: '黴菌' },
+                { name: '香菇', kingdom: '真菌界', category: '蕈' },
+                { name: '木耳', kingdom: '真菌界', category: '蕈' },
+                { name: '竹蓀', kingdom: '真菌界', category: '蕈' },
+                { name: '靈芝', kingdom: '真菌界', category: '蕈' },
+                { name: '毒蠅傘', kingdom: '真菌界', category: '蕈' },
+                { name: '毒瓢蕈', kingdom: '真菌界', category: '蕈' },
+                { name: '冬蟲夏草', kingdom: '真菌界', category: '蕈' },
+                { name: '地錢', kingdom: '植物界', category: '蘚苔' },
+                { name: '土馬騌', kingdom: '植物界', category: '蘚苔' },
+                { name: '水苔', kingdom: '植物界', category: '蘚苔' },
+                { name: '鐵線蕨', kingdom: '植物界', category: '蕨' },
+                { name: '鳥巢蕨', kingdom: '植物界', category: '蕨' },
+                { name: '過溝菜蕨', kingdom: '植物界', category: '蕨' },
+                { name: '筆筒樹', kingdom: '植物界', category: '蕨' },
+                { name: '松樹(剛葉松)', kingdom: '植物界', category: '裸子' },
+                { name: '蘇鐵', kingdom: '植物界', category: '裸子' },
+                { name: '銀杏', kingdom: '植物界', category: '裸子' },
+                { name: '杉', kingdom: '植物界', category: '裸子' },
+                { name: '柏、紅檜', kingdom: '植物界', category: '裸子' },
+                { name: '花生', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '綠豆', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '向日葵', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '菩提', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '油菜', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '油桐', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '櫻花', kingdom: '植物界', category: '被子雙子葉' },
+                { name: '蔥', kingdom: '植物界', category: '被子單子葉' },
+                { name: '稻', kingdom: '植物界', category: '被子單子葉' },
+                { name: '玉米', kingdom: '植物界', category: '被子單子葉' },
+                { name: '竹子', kingdom: '植物界', category: '被子單子葉' },
+                { name: '水仙', kingdom: '植物界', category: '被子單子葉' },
+                { name: '蘭花', kingdom: '植物界', category: '被子單子葉' },
+                { name: '百合', kingdom: '植物界', category: '被子單子葉' },
+                { name: '紫錦草', kingdom: '植物界', category: '被子單子葉' }
+            ];
+
+            // 顏色映射
+            const kingdomColors = {
+                '無': 'bg-gray-100 border-gray-400',
+                '原核生物界': 'bg-blue-100 border-blue-400',
+                '原生生物界': 'bg-green-100 border-green-400',
+                '真菌界': 'bg-yellow-100 border-yellow-400',
+                '植物界': 'bg-emerald-100 border-emerald-400'
+            };
+
+            // 隨機排序生物
+            const shuffledOrganisms = [...organisms].sort(() => Math.random() - 0.5);
+            
+            // 生成生物項目
+            const organismsContainer = document.getElementById('organisms-container');
+            shuffledOrganisms.forEach(organism => {
+                const organismElement = document.createElement('div');
+                organismElement.className = `organism-item p-2 rounded-md border ${kingdomColors[organism.kingdom]} text-sm font-medium`;
+                organismElement.textContent = organism.name;
+                organismElement.draggable = true;
+                organismElement.dataset.name = organism.name;
+                organismElement.dataset.kingdom = organism.kingdom;
+                organismElement.dataset.category = organism.category;
+                
+                // 拖曳事件
+                organismElement.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('text/plain', organism.name);
+                    e.dataTransfer.effectAllowed = 'move';
+                    setTimeout(() => {
+                        organismElement.classList.add('opacity-50');
+                    }, 0);
+                });
+                
+                organismElement.addEventListener('dragend', () => {
+                    organismElement.classList.remove('opacity-50');
+                });
+                
+                organismsContainer.appendChild(organismElement);
+            });
+            
+            // 設置分類容器的拖放事件
+            const categoryContainers = document.querySelectorAll('.category-container');
+            categoryContainers.forEach(container => {
+                container.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    container.classList.add('drag-over');
+                });
+                
+                container.addEventListener('dragleave', () => {
+                    container.classList.remove('drag-over');
+                });
+                
+                container.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    container.classList.remove('drag-over');
+                    
+                    const organismName = e.dataTransfer.getData('text/plain');
+                    const draggedElement = document.querySelector(`.organism-item[data-name="${organismName}"]`);
+                    
+                    if (draggedElement) {
+                        container.appendChild(draggedElement);
+                        updateProgress();
+                    }
+                });
+            });
+            
+            // 更新進度
+            function updateProgress() {
+                const total = organisms.length;
+                const placed = organisms.length - document.getElementById('organisms-container').children.length;
+                const percentage = (placed / total) * 100;
+                
+                document.getElementById('progress-bar').style.width = `${percentage}%`;
+                document.getElementById('progress-text').textContent = `${placed}/${total}`;
+            }
+            
+            // 檢查答案
+            document.getElementById('check-btn').addEventListener('click', () => {
+                let correct = 0;
+                let incorrect = 0;
+                
+                categoryContainers.forEach(container => {
+                    const kingdom = container.dataset.kingdom;
+                    const category = container.dataset.category;
+                    
+                    Array.from(container.children).forEach(child => {
+                        if (child.dataset.kingdom === kingdom && child.dataset.category === category) {
+                            child.classList.add('correct');
+                            child.classList.remove('incorrect');
+                            correct++;
+                        } else {
+                            child.classList.add('incorrect');
+                            child.classList.remove('correct');
+                            incorrect++;
+                        }
+                    });
+                });
+                
+                const resultMessage = document.getElementById('result-message');
+                resultMessage.classList.remove('hidden');
+                
+                if (incorrect === 0 && correct === organisms.length) {
+                    resultMessage.textContent = '恭喜！所有生物都分類正確！';
+                    resultMessage.className = 'mt-4 text-center text-green-600 font-bold';
+                } else {
+                    resultMessage.textContent = `正確: ${correct}, 錯誤: ${incorrect}, 未分類: ${organisms.length - correct - incorrect}`;
+                    resultMessage.className = 'mt-4 text-center text-blue-600 font-bold';
+                }
+            });
+            
+            // 重置遊戲
+            document.getElementById('reset-btn').addEventListener('click', () => {
+                // 清空所有分類容器
+                categoryContainers.forEach(container => {
+                    while (container.firstChild) {
+                        organismsContainer.appendChild(container.firstChild);
+                    }
+                });
+                
+                // 重新隨機排序生物
+                Array.from(organismsContainer.children)
+                    .sort(() => Math.random() - 0.5)
+                    .forEach(child => organismsContainer.appendChild(child));
+                
+                // 重置進度
+                updateProgress();
+                
+                // 隱藏結果訊息
+                document.getElementById('result-message').classList.add('hidden');
+            });
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93f81d9c03964aa3',t:'MTc0NzIwMTgwMi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const groupOptions = {
+    group: "organisms",
+    animation: 150,
+    ghostClass: "opacity-40",
+    dragClass: "opacity-70"
+  };
+
+  Sortable.create(document.getElementById("organisms-container"), groupOptions);
+
+  document.querySelectorAll('.category-container').forEach(container => {
+    Sortable.create(container, groupOptions);
+  });
+});
+</script>
+
+</body>
+</html>
