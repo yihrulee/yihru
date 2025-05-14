@@ -1,0 +1,764 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>動物界分類特徵測驗</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e1f5fe 100%);
+            min-height: 100vh;
+        }
+        
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.5rem center;
+            background-size: 1em;
+        }
+        
+        .correct {
+            background-color: #d1fae5;
+            border-color: #10b981;
+        }
+        
+        .incorrect {
+            background-color: #fee2e2;
+            border-color: #ef4444;
+        }
+        
+        .completed-item {
+            background-color: #f0fdf4;
+            border-left: 4px solid #10b981;
+            margin-bottom: 8px;
+        }
+        
+        @keyframes celebrate {
+            0% {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.2);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            animation: celebrate 0.8s ease-out;
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: #f00;
+            border-radius: 50%;
+        }
+        
+        @keyframes fall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-blue-800 mb-2">動物界分類特徵測驗</h1>
+            <p class="text-gray-600">選擇正確的特徵來測試你對動物分類的理解</p>
+            <div id="progressContainer" class="mt-4">
+                <div class="text-sm text-gray-600 mb-1">已完成 <span id="completedCount">0</span>/10 個動物門</div>
+                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    <div id="progressBar" class="bg-blue-600 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <div class="flex flex-col md:flex-row mb-4 items-center">
+                <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">動物門：</label>
+                <select id="animalType" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <option value="" selected disabled>請選擇一個動物門</option>
+                    <option value="刺絲胞動物門">刺絲胞動物門</option>
+                    <option value="扁形動物門">扁形動物門</option>
+                    <option value="軟體動物門-雙瓣綱">軟體動物門-雙瓣綱</option>
+                    <option value="軟體動物門-腹足綱">軟體動物門-腹足綱</option>
+                    <option value="軟體動物門-頭足綱">軟體動物門-頭足綱</option>
+                    <option value="環節動物門">環節動物門</option>
+                    <option value="節肢動物門-昆蟲綱">節肢動物門-昆蟲綱</option>
+                    <option value="節肢動物門-蛛形綱">節肢動物門-蛛形綱</option>
+                    <option value="節肢動物門-甲殼綱">節肢動物門-甲殼綱</option>
+                    <option value="棘皮動物門">棘皮動物門</option>
+                </select>
+            </div>
+            
+            <div class="space-y-4 mt-6">
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">例子：</label>
+                    <select id="example" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="蚯蚓、沙蠶、水蛭">蚯蚓、沙蠶、水蛭</option>
+                        <option value="水母、水螅、珊瑚">水母、水螅、珊瑚</option>
+                        <option value="渦蟲、寄生：絛蟲、吸蟲">渦蟲、寄生：絛蟲、吸蟲</option>
+                        <option value="蛤蜊">蛤蜊</option>
+                        <option value="蝸牛、蛞蝓、鮑魚">蝸牛、蛞蝓、鮑魚</option>
+                        <option value="章魚、烏賊">章魚、烏賊</option>
+                        <option value="蝴蝶、鍬形蟲、一對翅膀：蚊子、沒有翅膀：衣魚">蝴蝶、鍬形蟲、一對翅膀：蚊子、沒有翅膀：衣魚</option>
+                        <option value="蜘蛛、蟎">蜘蛛、蟎</option>
+                        <option value="螃蟹、蝦">螃蟹、蝦</option>
+                        <option value="海星、海參、海膽">海星、海參、海膽</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">身體分節：</label>
+                    <select id="bodySegmentation" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="無分節">無分節</option>
+                        <option value="扁平無分節">扁平無分節</option>
+                        <option value="柔軟無分節">柔軟無分節</option>
+                        <option value="分節各節相似">分節各節相似</option>
+                        <option value="頭、胸、腹三節">頭、胸、腹三節</option>
+                        <option value="頭胸、腹兩節">頭胸、腹兩節</option>
+                        <option value="分兩或三節">分兩或三節</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">攝食方式/特殊構造：</label>
+                    <select id="feedingMethod" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="口、刺絲胞捕食">口、刺絲胞捕食</option>
+                        <option value="口">口</option>
+                        <option value="濾食">濾食</option>
+                        <option value="口、齒舌">口、齒舌</option>
+                        <option value="口、觸手">口、觸手</option>
+                        <option value="口器">口器</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">運動構造：</label>
+                    <select id="movementStructure" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="身體">身體</option>
+                        <option value="斧足">斧足</option>
+                        <option value="腹足">腹足</option>
+                        <option value="蠕動爬行">蠕動爬行</option>
+                        <option value="3對步足">3對步足</option>
+                        <option value="4對步足">4對步足</option>
+                        <option value="5對步足">5對步足</option>
+                        <option value="管足">管足</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">骨骼或殼：</label>
+                    <select id="skeleton" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="珊瑚分泌外骨骼，形成珊瑚礁">珊瑚分泌外骨骼，形成珊瑚礁</option>
+                        <option value="無骨骼">無骨骼</option>
+                        <option value="2片外殼">2片外殼</option>
+                        <option value="螺旋狀外殼或消失">螺旋狀外殼或消失</option>
+                        <option value="殼退化或消失">殼退化或消失</option>
+                        <option value="大多數無">大多數無</option>
+                        <option value="外骨骼">外骨骼</option>
+                        <option value="表面有棘">表面有棘</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">分布區域：</label>
+                    <select id="distribution" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="海水">海水</option>
+                        <option value="海水、淡水">海水、淡水</option>
+                        <option value="陸地、海水、淡水">陸地、海水、淡水</option>
+                        <option value="陸地、淡水">陸地、淡水</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">神經系統：</label>
+                    <select id="nervousSystem" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="無">無</option>
+                        <option value="腦及神經">腦及神經</option>
+                    </select>
+                </div>
+                
+                <div class="flex flex-col md:flex-row items-center">
+                    <label class="font-medium text-gray-700 w-full md:w-1/4 mb-2 md:mb-0">消化系統：</label>
+                    <select id="digestiveSystem" class="w-full md:w-3/4 p-2 border border-gray-300 rounded-md">
+                        <option value="" selected disabled>請選擇</option>
+                        <option value="一個開口">一個開口</option>
+                        <option value="口肛門">口肛門</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="mt-8 flex justify-center">
+                <button id="checkAnswers" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition duration-300">送出答案</button>
+            </div>
+        </div>
+        
+        <div id="resultContainer" class="bg-white rounded-xl shadow-lg p-6 mb-8 hidden">
+            <h2 class="text-xl font-bold text-center mb-4">測驗結果</h2>
+            <div id="resultMessage" class="text-center text-lg mb-4"></div>
+            
+            <div id="correctAnswerDetails" class="border-t border-gray-200 pt-4 mt-4 hidden">
+                <h3 class="text-lg font-semibold mb-3">正確答案詳情</h3>
+                <div id="animalDetails" class="space-y-2"></div>
+            </div>
+            
+            <div class="flex justify-center mt-4">
+                <button id="tryAgain" class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-md transition duration-300">繼續測驗</button>
+            </div>
+        </div>
+        
+        <div id="completedAnimalsContainer" class="bg-white rounded-xl shadow-lg p-6 mb-8">
+            <h2 class="text-xl font-bold mb-4">已完成的動物門</h2>
+            <div id="completedAnimalsList" class="space-y-2">
+                <!-- 已完成的動物門會顯示在這裡 -->
+                <div class="text-gray-500 italic" id="noCompletedMessage">尚未完成任何動物門</div>
+            </div>
+        </div>
+        
+        <!-- 重置按鈕 -->
+        <div class="text-center mb-8">
+            <button id="resetAll" class="bg-red-500 hover:bg-red-600 text-white font-medium py-2 px-6 rounded-md transition duration-300">重置所有進度</button>
+        </div>
+        
+        <!-- 調試按鈕 -->
+        <div class="text-center mb-8">
+            <button id="debugButton" class="bg-gray-500 hover:bg-gray-600 text-white font-medium py-2 px-6 rounded-md transition duration-300">顯示調試信息</button>
+        </div>
+    </div>
+
+    <script>
+        // 動物分類資料
+        const animalData = {
+            "刺絲胞動物門": {
+                "例子": "水母、水螅、珊瑚",
+                "身體分節": "無分節",
+                "攝食方式": "口、刺絲胞捕食",
+                "運動構造": "身體",
+                "骨骼或殼": "珊瑚分泌外骨骼，形成珊瑚礁",
+                "分布區域": "海水、淡水",
+                "神經系統": "無",
+                "消化系統": "一個開口"
+            },
+            "扁形動物門": {
+                "例子": "渦蟲、寄生：絛蟲、吸蟲",
+                "身體分節": "扁平無分節",
+                "攝食方式": "口",
+                "運動構造": "身體",
+                "骨骼或殼": "無骨骼",
+                "分布區域": "陸地、海水、淡水",
+                "神經系統": "腦及神經",
+                "消化系統": "一個開口"
+            },
+            "軟體動物門-雙瓣綱": {
+                "例子": "蛤蜊",
+                "身體分節": "柔軟無分節",
+                "攝食方式": "濾食",
+                "運動構造": "斧足",
+                "骨骼或殼": "2片外殼",
+                "分布區域": "海水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "軟體動物門-腹足綱": {
+                "例子": "蝸牛、蛞蝓、鮑魚",
+                "身體分節": "柔軟無分節",
+                "攝食方式": "口、齒舌",
+                "運動構造": "腹足",
+                "骨骼或殼": "螺旋狀外殼或消失",
+                "分布區域": "陸地、海水、淡水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "軟體動物門-頭足綱": {
+                "例子": "章魚、烏賊",
+                "身體分節": "柔軟無分節",
+                "攝食方式": "口、觸手",
+                "運動構造": "身體",
+                "骨骼或殼": "殼退化或消失",
+                "分布區域": "海水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "環節動物門": {
+                "例子": "蚯蚓、沙蠶、水蛭",
+                "身體分節": "分節各節相似",
+                "攝食方式": "口",
+                "運動構造": "蠕動爬行",
+                "骨骼或殼": "大多數無",
+                "分布區域": "陸地、海水、淡水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "節肢動物門-昆蟲綱": {
+                "例子": "蝴蝶、鍬形蟲、一對翅膀：蚊子、沒有翅膀：衣魚",
+                "身體分節": "頭、胸、腹三節",
+                "攝食方式": "口器",
+                "運動構造": "3對步足",
+                "骨骼或殼": "外骨骼",
+                "分布區域": "陸地、淡水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "節肢動物門-蛛形綱": {
+                "例子": "蜘蛛、蟎",
+                "身體分節": "頭胸、腹兩節",
+                "攝食方式": "口器",
+                "運動構造": "4對步足",
+                "骨骼或殼": "外骨骼",
+                "分布區域": "陸地、淡水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "節肢動物門-甲殼綱": {
+                "例子": "螃蟹、蝦",
+                "身體分節": "分兩或三節",
+                "攝食方式": "口器",
+                "運動構造": "5對步足",
+                "骨骼或殼": "外骨骼",
+                "分布區域": "海水、淡水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            },
+            "棘皮動物門": {
+                "例子": "海星、海參、海膽",
+                "身體分節": "無分節",
+                "攝食方式": "口",
+                "運動構造": "管足",
+                "骨骼或殼": "表面有棘",
+                "分布區域": "海水",
+                "神經系統": "腦及神經",
+                "消化系統": "口肛門"
+            }
+        };
+
+        // 當前選擇的動物門類
+        let currentAnimalType = "";
+        // 已完成的動物門
+        let completedAnimals = [];
+
+        // 初始化頁面
+        document.addEventListener("DOMContentLoaded", function() {
+            // 綁定事件
+            document.getElementById("animalType").addEventListener("change", handleAnimalTypeChange);
+            document.getElementById("checkAnswers").addEventListener("click", checkAnswers);
+            document.getElementById("tryAgain").addEventListener("click", continueQuiz);
+            document.getElementById("resetAll").addEventListener("click", resetAllProgress);
+            document.getElementById("debugButton").addEventListener("click", showDebugInfo);
+            
+            // 從本地存儲加載已完成的動物門
+            loadCompletedAnimals();
+            
+            // 更新動物門選項和進度
+            updateAnimalTypeOptions();
+            updateCompletedAnimalsList();
+            updateProgressBar();
+            
+            // 輸出調試信息
+            console.log("初始化完成，已完成的動物門:", completedAnimals);
+        });
+
+        // 處理動物門類選擇變更
+        function handleAnimalTypeChange() {
+            const animalType = document.getElementById("animalType").value;
+            if (!animalType) return;
+            
+            currentAnimalType = animalType;
+            console.log("選擇了動物門:", currentAnimalType);
+            
+            // 重置所有選擇
+            resetSelections();
+        }
+
+        // 檢查答案
+        function checkAnswers() {
+            const animalType = currentAnimalType;
+            if (!animalType) {
+                alert("請先選擇一個動物門");
+                return;
+            }
+            
+            console.log("檢查答案，當前動物門:", animalType);
+            
+            const correctData = animalData[animalType];
+            let correctCount = 0;
+            let totalQuestions = 8; // 8個特徵問題（包括例子）
+            
+            // 檢查每個特徵選擇
+            const features = [
+                "example",
+                "bodySegmentation", 
+                "feedingMethod", 
+                "movementStructure", 
+                "skeleton", 
+                "distribution", 
+                "nervousSystem", 
+                "digestiveSystem"
+            ];
+            
+            const featureNames = {
+                "example": "例子",
+                "bodySegmentation": "身體分節",
+                "feedingMethod": "攝食方式",
+                "movementStructure": "運動構造",
+                "skeleton": "骨骼或殼",
+                "distribution": "分布區域",
+                "nervousSystem": "神經系統",
+                "digestiveSystem": "消化系統"
+            };
+            
+            features.forEach(feature => {
+                const select = document.getElementById(feature);
+                const selectedValue = select.value;
+                const correctValue = correctData[featureNames[feature]];
+                
+                // 移除之前的樣式
+                select.classList.remove("correct", "incorrect");
+                
+                if (selectedValue === correctValue) {
+                    select.classList.add("correct");
+                    correctCount++;
+                } else if (selectedValue) {
+                    select.classList.add("incorrect");
+                }
+            });
+            
+            // 顯示總結果
+            const resultContainer = document.getElementById("resultContainer");
+            const resultMessage = document.getElementById("resultMessage");
+            const correctAnswerDetails = document.getElementById("correctAnswerDetails");
+            const animalDetails = document.getElementById("animalDetails");
+            
+            resultContainer.classList.remove("hidden");
+            
+            if (correctCount === totalQuestions) {
+                resultMessage.innerHTML = `<span class="text-green-600 font-bold">恭喜！</span> 你答對了所有問題！`;
+                
+                // 顯示詳細資訊
+                correctAnswerDetails.classList.remove("hidden");
+                animalDetails.innerHTML = "";
+                
+                // 添加動物門詳細資訊
+                Object.entries(correctData).forEach(([key, value]) => {
+                    animalDetails.innerHTML += `
+                        <div class="flex flex-col md:flex-row">
+                            <div class="font-medium text-gray-700 w-full md:w-1/4 mb-1 md:mb-0">${key}：</div>
+                            <div class="w-full md:w-3/4 text-gray-800">${value}</div>
+                        </div>
+                    `;
+                });
+                
+                // 添加到已完成列表
+                if (!completedAnimals.includes(animalType)) {
+                    console.log("添加新完成的動物門:", animalType);
+                    completedAnimals.push(animalType);
+                    saveCompletedAnimals();
+                    updateCompletedAnimalsList();
+                    updateProgressBar();
+                    updateAnimalTypeOptions();
+                    
+                    // 檢查是否完成所有動物門
+                    if (completedAnimals.length === Object.keys(animalData).length) {
+                        setTimeout(() => {
+                            showCelebration();
+                        }, 1000);
+                    }
+                } else {
+                    console.log("該動物門已經完成過:", animalType);
+                }
+            } else {
+                resultMessage.innerHTML = `你答對了 <span class="font-bold">${correctCount}</span> 題，共 <span class="font-bold">${totalQuestions}</span> 題。請再試一次！`;
+                correctAnswerDetails.classList.add("hidden");
+            }
+        }
+
+        // 繼續測驗
+        function continueQuiz() {
+            document.getElementById("resultContainer").classList.add("hidden");
+            document.getElementById("animalType").selectedIndex = 0;
+            
+            resetSelections();
+            
+            currentAnimalType = "";
+        }
+
+        // 重置所有選擇
+        function resetSelections() {
+            const selects = [
+                "example",
+                "bodySegmentation", 
+                "feedingMethod", 
+                "movementStructure", 
+                "skeleton", 
+                "distribution", 
+                "nervousSystem", 
+                "digestiveSystem"
+            ];
+            
+            selects.forEach(select => {
+                const element = document.getElementById(select);
+                element.selectedIndex = 0;
+                element.classList.remove("correct", "incorrect");
+            });
+        }
+        
+        // 保存已完成的動物門到本地存儲
+        function saveCompletedAnimals() {
+            try {
+                localStorage.setItem('animalQuizCompleted', JSON.stringify(completedAnimals));
+                console.log("已保存完成的動物門:", completedAnimals);
+            } catch (e) {
+                console.error("保存到本地存儲時出錯:", e);
+            }
+        }
+        
+        // 從本地存儲加載已完成的動物門
+        function loadCompletedAnimals() {
+            try {
+                const saved = localStorage.getItem('animalQuizCompleted');
+                if (saved) {
+                    completedAnimals = JSON.parse(saved);
+                    console.log("已加載完成的動物門:", completedAnimals);
+                } else {
+                    completedAnimals = [];
+                    console.log("沒有找到已保存的完成記錄，初始化為空數組");
+                }
+            } catch (e) {
+                console.error("從本地存儲加載時出錯:", e);
+                completedAnimals = [];
+            }
+        }
+        
+        // 更新已完成的動物門列表
+        function updateCompletedAnimalsList() {
+            const completedAnimalsList = document.getElementById("completedAnimalsList");
+            const noCompletedMessage = document.getElementById("noCompletedMessage");
+            
+            // 清空列表
+            completedAnimalsList.innerHTML = "";
+            
+            // 重新添加"尚未完成"消息
+            completedAnimalsList.appendChild(noCompletedMessage);
+            
+            console.log("更新已完成列表，當前完成數量:", completedAnimals.length);
+            
+            if (completedAnimals && completedAnimals.length > 0) {
+                // 隱藏"尚未完成"消息
+                noCompletedMessage.style.display = "none";
+                
+                // 添加已完成的動物門
+                completedAnimals.forEach(animal => {
+                    const item = document.createElement("div");
+                    item.className = "p-3 rounded-md completed-item";
+                    item.innerHTML = `
+                        <div class="flex items-center">
+                            <svg class="w-5 h-5 text-green-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                            </svg>
+                            <span class="font-medium">${animal}</span>
+                        </div>
+                    `;
+                    completedAnimalsList.appendChild(item);
+                });
+            } else {
+                // 顯示"尚未完成"消息
+                noCompletedMessage.style.display = "block";
+            }
+        }
+        
+        // 更新進度條
+        function updateProgressBar() {
+            const completedCount = document.getElementById("completedCount");
+            const progressBar = document.getElementById("progressBar");
+            
+            const totalAnimals = Object.keys(animalData).length;
+            const progress = (completedAnimals.length / totalAnimals) * 100;
+            
+            completedCount.textContent = completedAnimals.length;
+            progressBar.style.width = `${progress}%`;
+            
+            console.log("更新進度條，完成率:", progress.toFixed(1) + "%");
+        }
+        
+        // 更新動物門選項
+        function updateAnimalTypeOptions() {
+            const animalTypeSelect = document.getElementById("animalType");
+            const options = animalTypeSelect.options;
+            
+            for (let i = 1; i < options.length; i++) {
+                const option = options[i];
+                if (completedAnimals.includes(option.value)) {
+                    option.textContent = `${option.value} ✓`;
+                } else {
+                    option.textContent = option.value;
+                }
+            }
+            
+            console.log("已更新動物門選項標記");
+        }
+        
+        // 重置所有進度
+        function resetAllProgress() {
+            if (confirm("確定要重置所有進度嗎？這將清除所有已完成的動物門記錄。")) {
+                completedAnimals = [];
+                saveCompletedAnimals();
+                updateCompletedAnimalsList();
+                updateProgressBar();
+                updateAnimalTypeOptions();
+                console.log("已重置所有進度");
+            }
+        }
+        
+        // 顯示通關慶祝動畫
+        function showCelebration() {
+            // 創建慶祝容器
+            const celebration = document.createElement("div");
+            celebration.className = "celebration";
+            
+            // 添加慶祝文字
+            const message = document.createElement("div");
+            message.className = "text-4xl font-bold text-white mb-4";
+            message.textContent = "恭喜通關！";
+            
+            const subMessage = document.createElement("div");
+            subMessage.className = "text-xl text-white mb-8";
+            subMessage.textContent = "你已成功完成所有動物門的測驗！";
+            
+            // 添加關閉按鈕
+            const closeButton = document.createElement("button");
+            closeButton.className = "bg-white text-blue-600 hover:bg-blue-50 font-medium py-2 px-6 rounded-md transition duration-300 mt-4";
+            closeButton.textContent = "關閉";
+            closeButton.onclick = function() {
+                document.body.removeChild(celebration);
+            };
+            
+            // 添加重置按鈕
+            const resetButton = document.createElement("button");
+            resetButton.className = "bg-blue-600 text-white hover:bg-blue-700 font-medium py-2 px-6 rounded-md transition duration-300 mt-4 ml-4";
+            resetButton.textContent = "重新開始";
+            resetButton.onclick = function() {
+                // 清除已完成的動物門
+                completedAnimals = [];
+                saveCompletedAnimals();
+                updateCompletedAnimalsList();
+                updateProgressBar();
+                updateAnimalTypeOptions();
+                
+                // 關閉慶祝動畫
+                document.body.removeChild(celebration);
+            };
+            
+            celebration.appendChild(message);
+            celebration.appendChild(subMessage);
+            
+            const buttonContainer = document.createElement("div");
+            buttonContainer.className = "flex space-x-4";
+            buttonContainer.appendChild(closeButton);
+            buttonContainer.appendChild(resetButton);
+            
+            celebration.appendChild(buttonContainer);
+            
+            // 添加五彩紙屑效果
+            for (let i = 0; i < 100; i++) {
+                createConfetti(celebration);
+            }
+            
+            document.body.appendChild(celebration);
+        }
+        
+        // 創建五彩紙屑
+        function createConfetti(container) {
+            const confetti = document.createElement("div");
+            const colors = ["#f00", "#0f0", "#00f", "#ff0", "#f0f", "#0ff"];
+            
+            confetti.className = "confetti";
+            confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+            confetti.style.left = Math.random() * 100 + "%";
+            confetti.style.top = -20 + "px";
+            confetti.style.width = Math.random() * 10 + 5 + "px";
+            confetti.style.height = Math.random() * 10 + 5 + "px";
+            confetti.style.opacity = Math.random();
+            confetti.style.transform = "rotate(" + Math.random() * 360 + "deg)";
+            
+            // 設置動畫
+            confetti.style.animation = `fall ${Math.random() * 3 + 2}s linear ${Math.random() * 2}s infinite`;
+            
+            container.appendChild(confetti);
+        }
+        
+        // 顯示調試信息
+        function showDebugInfo() {
+            console.log("=== 調試信息 ===");
+            console.log("當前動物門:", currentAnimalType);
+            console.log("已完成的動物門:", completedAnimals);
+            console.log("本地存儲內容:", localStorage.getItem('animalQuizCompleted'));
+            
+            // 顯示彈窗
+            alert(`
+                調試信息：
+                - 當前動物門: ${currentAnimalType || '未選擇'}
+                - 已完成數量: ${completedAnimals.length}
+                - 已完成列表: ${completedAnimals.join(', ')}
+                - 本地存儲: ${localStorage.getItem('animalQuizCompleted')}
+                
+                更多詳細信息請查看控制台。
+            `);
+            
+            // 嘗試修復可能的問題
+            try {
+                // 確保 completedAnimals 是一個數組
+                if (!Array.isArray(completedAnimals)) {
+                    console.log("修復：completedAnimals 不是數組，重置為空數組");
+                    completedAnimals = [];
+                }
+                
+                // 重新保存到本地存儲
+                saveCompletedAnimals();
+                
+                // 強制更新 UI
+                updateCompletedAnimalsList();
+                updateProgressBar();
+                updateAnimalTypeOptions();
+                
+                console.log("已嘗試修復可能的問題");
+            } catch (e) {
+                console.error("修復過程中出錯:", e);
+            }
+        }
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93f81f14335f841e',t:'MTc0NzIwMTg2Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
