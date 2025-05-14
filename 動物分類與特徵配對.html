@@ -88,6 +88,7 @@
             color: #4b5563;
         }
     </style>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
 </head>
 <body class="p-4 md:p-8">
     <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
@@ -513,5 +514,27 @@
             }
         });
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93f81a97e2c4846a',t:'MTc0NzIwMTY3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'93f81a97e2c4846a',t:'MTc0NzIwMTY3OC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const groupOptions = {
+    group: "dragmatch",
+    animation: 150,
+    ghostClass: "opacity-40",
+    dragClass: "opacity-70"
+  };
+
+  Sortable.create(document.getElementById("characteristics"), groupOptions);
+  Sortable.create(document.getElementById("examples"), groupOptions);
+
+  document.querySelectorAll(".drop-zone").forEach(zone => {
+    Sortable.create(zone, {
+      ...groupOptions,
+      sort: false
+    });
+  });
+});
+</script>
+
+</body>
 </html>
