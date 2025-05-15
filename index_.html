@@ -28,7 +28,18 @@
     button { padding: 10px 20px; font-size: 20px; margin: 10px; }
   </style>
 
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js">
+function startSpawningMoths() {
+  function spawnWithRandomInterval() {
+    spawnMoth(); // 呼叫生成蛾的函式
+    const randomInterval = Math.floor(Math.random() * 501) + 1000; // 隨機 200～250 毫秒
+    setTimeout(spawnWithRandomInterval, randomInterval);
+  }
+  spawnWithRandomInterval();
+}
+startSpawningMoths();
+
+</script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@1.1.1"></script>
   <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
 </head>
@@ -215,7 +226,7 @@
 
     function drawBackground() {
       if (predator === 'bird') {
-        ctx.fillStyle = environment === 'light' ? '#e0e0e0' : '#1a1a1a';
+        ctx.fillStyle = environment === 'light' ? '#e0e0e0' : '#000000';
       } else {
         ctx.fillStyle = '#222';
       }
