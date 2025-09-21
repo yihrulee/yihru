@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>戰在身體裡，免疫系統大作戰</title>
+  <style>
+    :root{--bg:#0f172a;--card:#111827;--muted:#64748b;--text:#e5e7eb;
+      --accent:#22c55e;--accent2:#38bdf8;--danger:#ef4444;--surface:#0b1220;
+      --amber:#f59e0b;--violet:#a78bfa;}
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,var(--surface),var(--bg));
+      color:var(--text);font-family:"Noto Sans TC","Segoe UI",system-ui,Arial,sans-serif;}
+    header{padding:20px 24px;border-bottom:1px solid #1f2937;position:sticky;top:0;
+      background:rgba(11,18,32,.9);backdrop-filter:blur(8px);}
+    h1{margin:0;font-size:22px}
+    .container{max-width:1360px;margin:20px auto;padding:0 16px;
+      display:grid;grid-template-columns:400px 1fr 560px;gap:16px}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .left,.right,.insights{padding:18px}
+    .right{display:grid;grid-template-rows:auto auto 1fr;gap:12px}
+    .field{margin-bottom:14px}
+    label{display:block;margin-bottom:8px;color:#cbd5e1;font-size:13px}
+    .pill{background:#0b1220;border:1px solid #1f2937;color:#e5e7eb;
+      padding:10px 12px;border-radius:12px;display:flex;align-items:center;gap:8px;width:100%}
+    .radio-list{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .radio{background:#0b1220;border:1px solid #1f2937;padding:10px;border-radius:12px;
+      cursor:pointer;display:flex;gap:8px;align-items:center}
+    .radio input{accent-color:var(--accent)}
+    .chips{display:grid;gap:8px}
+    .chips.four{grid-template-columns:repeat(4,1fr)}
+    .chips.six{grid-template-columns:repeat(2,1fr)}
+    .chips.two{grid-template-columns:repeat(2,1fr)}
+    @media (min-width: 480px){ .chips.six{grid-template-columns:repeat(3,1fr)} }
+    .chip{position:relative}
+    .chip input{position:absolute;opacity:0;pointer-events:none}
+    .chip span{display:block;border:1px solid #1f2937;background:#0b1220;color:#e5e7eb;
+      padding:10px 12px;border-radius:12px;text-align:center;cursor:pointer;font-size:13px;line-height:1.2}
+    .chip input:checked + span{outline:2px solid #22c55e;background:rgba(34,197,94,.08)}
+    .chip span small{display:block;color:#93c5fd;font-size:11px;margin-top:4px}
+    .actions{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+    button{border:0;border-radius:12px;padding:10px 12px;cursor:pointer;font-weight:600}
+    .primary{background:linear-gradient(90deg,var(--accent2),var(--accent));color:#0b1220}
+    .ghost{background:#0b1220;color:#cbd5e1;border:1px solid #1f2937}
+    .util{background:#0b1220;color:#a7f3d0;border:1px solid #065f46}
+    .arena{position:relative;background:#0b1220;border:1px dashed #233047;
+      border-radius:16px;padding:16px;min-height:260px}
+    .side{display:flex;align-items:center;gap:12px}
+    .side .avatar{width:48px;height:48px;border-radius:999px;display:grid;place-items:center;font-size:26px}
+    .pathogen{--c:var(--danger)} .immune{--c:var(--accent2)}
+    .side.pathogen .avatar{background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4)}
+    .side.immune .avatar{background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.4)}
+    .hp{flex:1}
+    .bar{height:12px;background:#111827;border-radius:999px;overflow:hidden;border:1px solid #1f2937}
+    .bar>i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--c),#22d3ee)}
+    .labels{display:flex;justify-content:space-between;font-size:12px;color:#cbd5e1;margin-top:4px}
+    .log{background:#0b1220;border:1px solid #1f2937;border-radius:12px;padding:10px;overflow:auto;max-height:300px;font-size:13px}
+    .log p{margin:0 0 8px}
+    .badges{display:flex;gap:8px;flex-wrap:wrap}
+    .badge{font-size:12px;border-radius:999px;padding:6px 10px;border:1px solid #233047;background:#0b1220}
+    .good{color:#86efac;border-color:#14532d} .poor{color:#fca5a5;border-color:#7f1d1d}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .panel{border:1px solid #1f2937;background:#0b1220;border-radius:12px;padding:8px}
+    .lv{font-weight:700}
+    .xpbar{height:8px;background:#111827;border:1px solid #1f2937;border-radius:999px;overflow:hidden;margin-top:6px}
+    .xpbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--violet),var(--amber))}
+    /* insights */
+    .mini{font-size:12px;color:#93c5fd}
+    .chart-wrap{display:grid;grid-template-columns:1fr;gap:10px;margin-top:8px}
+    canvas{background:#0b1220;border:1px solid #1f2937;border-radius:12px}
+    table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+    th,td{border:1px solid #1f2937;padding:6px 8px} th{color:#cbd5e1}
+    .controls{display:grid;grid-template-columns:1fr;gap:8px;margin:8px 0}
+    .legend{display:flex;gap:12px;align-items:center;margin:6px 0 10px 4px;font-size:12px;color:#cbd5e1}
+    .dot{width:10px;height:10px;border-radius:999px;display:inline-block}
+    @media (max-width: 1180px){ .container{grid-template-columns:1fr} .right{grid-template-rows:auto auto auto} }
+  </style>
+</head>
+<body>
+<header><h1>戰在身體裡，免疫系統大作戰</h1></header>
+
+<main class="container">
+  <!-- 左側設定 -->
+  <section class="card left">
+    <h2>設定戰鬥條件</h2>
+
+    <div class="field">
+      <label>① 病原體種類</label>
+      <div class="chips four" role="radiogroup" aria-label="病原體種類">
+        <label class="chip"><input type="radio" name="pathType" value="virus" checked /><span>病毒<small>🧬 RNA/DNA</small></span></label>
+        <label class="chip"><input type="radio" name="pathType" value="bacteria" /><span>細菌<small>🧫 單細胞</small></span></label>
+        <label class="chip"><input type="radio" name="pathType" value="fungus" /><span>真菌<small>🍄 菌絲</small></span></label>
+        <label class="chip"><input type="radio" name="pathType" value="protozoa" /><span>原蟲<small>🦠 鞭毛/纖毛</small></span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>② 人體狀況</label>
+      <div class="chips six" role="radiogroup" aria-label="人體狀況">
+        <label class="chip"><input type="radio" name="bodyState" value="fit_exercise" checked /><span>經常運動<small>免疫強</small></span></label>
+        <label class="chip"><input type="radio" name="bodyState" value="fit_sleep" /><span>睡眠充足<small>免疫強</small></span></label>
+        <label class="chip"><input type="radio" name="bodyState" value="fit_nutrition" /><span>營養均衡<small>免疫強</small></span></label>
+        <label class="chip"><input type="radio" name="bodyState" value="weak_noexercise" /><span>幾乎不運動<small>免疫弱</small></span></label>
+        <label class="chip"><input type="radio" name="bodyState" value="weak_nightowl" /><span>經常熬夜<small>免疫弱</small></span></label>
+        <label class="chip"><input type="radio" name="bodyState" value="weak_poordiet" /><span>飲食不正常<small>免疫弱</small></span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>③ 疫苗狀態</label>
+      <div class="chips two" role="radiogroup" aria-label="疫苗狀態">
+        <label class="chip"><input type="radio" name="vaccStatus" value="UNVACC" checked /><span>未接種疫苗</span></label>
+        <label class="chip"><input type="radio" name="vaccStatus" value="VACC" /><span>已施打疫苗</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>④ 進攻入口</label>
+      <div class="radio-list" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <label class="radio"><input type="radio" name="route" value="intact_skin" checked> 完整皮膚</label>
+        <label class="radio"><input type="radio" name="route" value="oral"> 口腔</label>
+        <label class="radio"><input type="radio" name="route" value="nasal"> 鼻腔</label>
+        <label class="radio"><input type="radio" name="route" value="wounded_skin"> 受傷的皮膚</label>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="primary" id="btnStart">🚀 開始對戰</button>
+      <button class="ghost" id="btnReset">↻ 重設</button>
+      <button class="util" id="btnClearStats" title="清除統計資料">🧹 清空統計</button>
+    </div>
+    <p class="mini">右側三張圖支援<b>視圖按鈕</b>：未接種／已施打疫苗／比較（群組柱）／全部。縱軸=對戰結束時的<b>平均免疫防禦力值</b>（整數刻度）。</p>
+
+    <div class="stats">
+      <div class="panel">病原體 Lv <span id="pLv">1</span>（XP <span id="pXP">0</span>/<span id="pNext">100</span>)<div class="xpbar"><i id="pXPBar" style="width:0%"></i></div></div>
+      <div class="panel">免疫 Lv <span id="iLv">1</span>（XP <span id="iXP">0</span>/<span id="iNext">100</span>)<div class="xpbar"><i id="iXPBar" style="width:0%"></i></div></div>
+    </div>
+    <div class="panel" style="margin-top:8px">免疫記憶：<span id="memoBadge">無</span></div>
+  </section>
+
+  <!-- 中間戰鬥場景 -->
+  <section class="card right">
+    <div class="badges" id="statusBadges"></div>
+    <div class="arena">
+      <div class="side pathogen"><div class="avatar" id="pAvatar">🦠</div><div class="hp"><div class="bar"><i id="pBar" style="width:100%"></i></div><div class="labels"><span>病原體負荷</span><span id="pHpLabel">100 / 100</span></div></div></div>
+      <div style="height:10px"></div>
+      <div class="side immune"><div class="avatar">🛡️</div><div class="hp"><div class="bar"><i id="iBar" style="width:100%"></i></div><div class="labels"><span>免疫防禦力</span><span id="iHpLabel">100 / 100</span></div></div></div>
+    </div>
+    <div class="log" id="log"></div>
+  </section>
+
+  <!-- 右側統計：三張圖（病原體 / 人體狀況 / 入口） -->
+  <section class="card insights">
+    <h3 style="margin:0 0 8px">📊 統計 / 圖表（平均免疫防禦力值）</h3>
+
+    <div class="controls">
+      <label>疫苗視圖</label>
+      <div class="chips four" role="radiogroup" aria-label="疫苗視圖">
+        <label class="chip"><input type="radio" name="vaccView" value="UNVACC" /><span>未接種</span></label>
+        <label class="chip"><input type="radio" name="vaccView" value="VACC" /><span>已施打疫苗</span></label>
+        <label class="chip"><input type="radio" name="vaccView" value="COMPARE" /><span>比較（疫苗 vs 未接種）</span></label>
+        <label class="chip"><input type="radio" name="vaccView" value="ALL" checked /><span>全部</span></label>
+      </div>
+      <div class="legend" id="legend" style="display:none;">
+        <span><i class="dot" style="background:#38bdf8"></i> 已施打疫苗</span>
+        <span><i class="dot" style="background:#f59e0b"></i> 未接種</span>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div>
+        <div class="mini">依「病原體種類」的平均免疫防禦力值</div>
+        <canvas id="chartByType" width="520" height="220"></canvas>
+      </div>
+      <div>
+        <div class="mini">依「人體狀況」的平均免疫防禦力值</div>
+        <canvas id="chartByState" width="520" height="220"></canvas>
+      </div>
+      <div>
+        <div class="mini">依「進攻入口」的平均免疫防禦力值</div>
+        <canvas id="chartByRoute" width="520" height="220"></canvas>
+      </div>
+    </div>
+
+    <table>
+      <thead id="thead">
+        <tr><th>維度</th><th>分類</th><th>樣本數</th><th>平均免疫防禦力值</th><th>免疫成功率</th></tr>
+      </thead>
+      <tbody id="summaryRows"><tr><td colspan="5" style="text-align:center;color:#94a3b8">尚無資料，先進行幾場對戰吧！</td></tr></tbody>
+    </table>
+  </section>
+</main>
+
+<script>
+// ===== 遊戲核心（含統計） =====
+const $=(q)=>document.querySelector(q);const logEl=$('#log');const memoBadge=$('#memoBadge');const badgesEl=$('#statusBadges');
+const prog={pLv:1,pXP:0,pNext:100,iLv:1,iXP:0,iNext:100, memoryLevel:0};
+const history=[]; // 累積戰報
+
+function log(msg,type=""){const p=document.createElement('p');p.innerHTML=msg;if(type==='bad')p.style.color='#fca5a5';if(type==='good')p.style.color='#86efac';if(type==='event')p.style.color='#fbbf24';logEl.appendChild(p);logEl.scrollTop=logEl.scrollHeight;}
+function resetLog(){logEl.innerHTML='';}
+let pathogen={load:100,max:100};let immune={power:100,max:100};
+function updateBars(){const pPct=Math.max(0,pathogen.load)/pathogen.max*100;$('#pBar').style.width=pPct+'%';$('#pHpLabel').textContent=`${Math.round(pathogen.load)} / ${pathogen.max}`;const iPct=Math.max(0,immune.power)/immune.max*100;$('#iBar').style.width=iPct+'%';$('#iHpLabel').textContent=`${Math.round(immune.power)} / ${immune.max}`;}
+function addXP(side,amt){if(side==='p'){prog.pXP+=amt;while(prog.pXP>=prog.pNext){prog.pXP-=prog.pNext;prog.pLv++;prog.pNext=Math.round(100*(1+0.25*(prog.pLv-1)));log(`⬆️ 病原體升級 Lv${prog.pLv}`,'event');}}else{prog.iXP+=amt;while(prog.iXP>=prog.iNext){prog.iXP-=prog.iNext;prog.iLv++;prog.iNext=Math.round(100*(1+0.25*(prog.iLv-1)));log(`⬆️ 免疫系統升級 Lv${prog.iLv}`,'event');}}$('#pLv').textContent=prog.pLv;$('#iLv').textContent=prog.iLv;$('#pXP').textContent=prog.pXP;$('#iXP').textContent=prog.iXP;$('#pNext').textContent=prog.pNext;$('#iNext').textContent=prog.iNext;$('#pXPBar').style.width=(prog.pXP/prog.pNext*100)+'%';$('#iXPBar').style.width=(prog.iXP/prog.iNext*100)+'%';}
+
+// 標籤
+const labelPT={virus:'病毒',bacteria:'細菌',fungus:'真菌',protozoa:'原蟲'};
+const labelST={fit_exercise:'經常運動',fit_sleep:'睡眠充足',fit_nutrition:'營養均衡',weak_noexercise:'幾乎不運動',weak_nightowl:'經常熬夜',weak_poordiet:'飲食不正常'};
+const labelRT={intact_skin:'完整皮膚',oral:'口腔',nasal:'鼻腔',wounded_skin:'受傷皮膚'};
+const keysPT=['virus','bacteria','fungus','protozoa'];
+const keysST=['fit_exercise','fit_sleep','fit_nutrition','weak_noexercise','weak_nightowl','weak_poordiet'];
+const keysRT=['intact_skin','oral','nasal','wounded_skin'];
+
+// 依條件建立免疫能力（校準：強>弱、疫苗>未）＋病原體/入口交互作用（小幅）
+function immunityProfile(sel){
+  let innate=1,adaptive=1;
+  const strong=['fit_exercise','fit_sleep','fit_nutrition'].includes(sel.state);
+  const weak=['weak_noexercise','weak_nightowl','weak_poordiet'].includes(sel.state);
+  if(strong){innate=1.35;adaptive=1.35;} if(weak){innate=0.75;adaptive=0.75;}
+  if(sel.vaccinated){adaptive+=0.40;}
+  // 病原體 × 入口：小幅影響免疫輸出（不破壞強>弱、疫苗>未）
+  let routeAdj=1;
+  if(sel.type==='virus' && sel.route==='nasal') routeAdj=0.93;         // 飛沫/鼻腔，稍不利免疫
+  if(sel.type==='virus' && sel.route==='oral') routeAdj=0.95;          // 口腔也有些挑戰
+  if(sel.type==='bacteria' && sel.route==='wounded_skin') routeAdj=0.92; // 傷口易細菌感染
+  if(sel.type==='fungus' && sel.route==='intact_skin') routeAdj=0.95;    // 皮膚真菌較頑固
+  if(sel.type==='protozoa' && sel.route==='oral') routeAdj=0.97;         // 經口路徑小影響
+  innate*=routeAdj; adaptive*=routeAdj;
+
+  if(prog.memoryLevel>0){adaptive+=0.15*prog.memoryLevel; memoBadge.textContent='記憶 Lv'+prog.memoryLevel;} else {memoBadge.textContent='無';}
+  return{innate,adaptive,strong,weak};
+}
+
+function chance(p){return Math.random()<p;}
+
+function simulateBattle(sel){
+  resetLog();
+  pathogen.load=100+(prog.pLv-1)*5;pathogen.max=pathogen.load;
+  immune.power=100+(prog.iLv-1)*5;immune.max=immune.power;
+  updateBars();
+  let round=1, outcome=''; const profile=immunityProfile(sel);
+
+  // 口腔事件狀態
+  let salivaBuffTurns = 0; // 2 回合 buff
+  let acidChecked = false; // 僅檢查一次
+
+  // 狀態徽章
+  badgesEl.innerHTML='';
+  const addBadge=(t,c='')=>{const s=document.createElement('span');s.className='badge '+c;s.textContent=t;badgesEl.appendChild(s);};
+  addBadge('病原體：'+labelPT[sel.type]);
+  addBadge('狀態：'+labelST[sel.state], profile.strong?'good':'');
+  if(profile.weak) addBadge('免疫弱化','poor');
+  if(sel.vaccinated) addBadge('已施打疫苗','good'); else addBadge('未接種疫苗');
+  addBadge('入口：'+labelRT[sel.route]);
+
+  log('⚔️ 對戰開始！');
+  const timer=setInterval(()=>{
+    // 隨機事件：鼻腔 → 打噴嚏
+    if(sel.route==='nasal'&&chance(0.2*profile.innate)){
+      clearInterval(timer); log('🤧 <b>打噴嚏！</b> 病原體被排出。','event'); addXP('i',40); prog.memoryLevel=Math.min(3, prog.memoryLevel+1); outcome='sneeze'; finalize(outcome, round-1); return;
+    }
+
+    // 隨機事件：口腔 → 唾液/溶菌酶加成（回合1–2之間有機率觸發，持續2回合，免疫輸出+15%）
+    if(sel.route==='oral' && round<=2 && salivaBuffTurns===0 && chance(0.25*profile.innate)){
+      salivaBuffTurns = 2;
+      addBadge('唾液/溶菌酶加成','good');
+      log('🧪 <b>唾液／溶菌酶加成</b>啟動：接下來 2 回合免疫輸出 +15%。','event');
+    }
+
+    // 隨機事件：口腔 → 胃酸殺滅（回合≥3 檢查一次，高機率大量削減或直接消滅）
+    if(sel.route==='oral' && !acidChecked && round>=3){
+      acidChecked = true;
+      if(chance(0.45*profile.innate)){
+        clearInterval(timer);
+        log('🧪 <b>胃酸殺滅！</b> 病原體被消滅。','event');
+        addXP('i',50); // 先天屏障成功，但不增加免疫記憶
+        outcome='gastric_acid';
+        finalize(outcome, round-1);
+        return;
+      }
+    }
+
+    // 本回合戰鬥計算
+    let immuneDamage=(10*profile.innate)+14*profile.adaptive*Math.min(1,(round-2)/4);
+    if(salivaBuffTurns>0){ immuneDamage*=1.15; salivaBuffTurns--; }
+    let pathogenDamage=10+(prog.pLv-1)*2; if(profile.strong)pathogenDamage*=0.8; if(profile.weak)pathogenDamage*=1.15;
+
+    pathogen.load-=immuneDamage; immune.power-=pathogenDamage; updateBars();
+    log(`第${round}回合：免疫造成${immuneDamage.toFixed(0)}；病原體反擊${pathogenDamage.toFixed(0)}。`);
+
+    if(pathogen.load<=0||immune.power<=0||round>=12){
+      clearInterval(timer);
+      if(pathogen.load<=0){log('✅ 病原體被殲滅！','good'); addXP('i',60); prog.memoryLevel=Math.min(3, prog.memoryLevel+1); outcome='immune_win';}
+      else if(immune.power<=0){log('❌ 免疫系統崩潰！','bad'); addXP('p',60); outcome='pathogen_win';}
+      else {log('⚖️ 雙方僵持。'); addXP('p',30); addXP('i',30); outcome='stalemate';}
+      finalize(outcome, round);
+      return;
+    }
+    round++;
+  }, 700);
+
+  function finalize(outcome, rounds){
+    const immuneEnd = Math.max(0, Math.round(immune.power));
+    // 校準分數：確保 強>弱 與 疫苗>未 在同條件下成立
+    const strongBias = (['fit_exercise','fit_sleep','fit_nutrition'].includes(sel.state)) ? +10 : (['weak_noexercise','weak_nightowl','weak_poordiet'].includes(sel.state) ? -10 : 0);
+    const vaccBias = sel.vaccinated ? +8 : 0;
+    // 病原體附加偏移（小於強/弱與疫苗差距）
+    const typeBias = ({virus:0, bacteria:-2, fungus:-3, protozoa:-1})[sel.type] || 0;
+    const immuneScore = Math.max(0, immuneEnd + strongBias + vaccBias + typeBias);
+    history.push({type:sel.type, state:sel.state, route:sel.route, vaccinated:sel.vaccinated, outcome, rounds, immuneEnd, immuneScore});
+    refreshChartsAndTable();
+  }
+}
+
+// ===== 統計：整數刻度 Y 軸 + 視圖切換（四個按鈕） =====
+function aggAvgImmune(keys, keyName, vaccFilter=null){
+  return keys.map(k=>{
+    const items = history.filter(h=>h[keyName]===k && (vaccFilter===null || h.vaccinated===vaccFilter));
+    const n=items.length;
+    const wins = items.filter(h=>h.outcome==='immune_win'||h.outcome==='sneeze'||h.outcome==='gastric_acid').length;
+    const avgImmune = n? (items.reduce((s,h)=>s+(h.immuneScore||h.immuneEnd||0),0)/n) : 0;
+    return {key:k, n, avgImmune, rate: n? Math.round(wins/n*100): 0};
+  });
+}
+
+function niceStepInt(maxVal){
+  if(maxVal<=0) return 1;
+  const exp = Math.floor(Math.log10(maxVal));
+  const base = Math.pow(10, exp);
+  const candidates = [1,2,5,10].map(m=>m*base);
+  let step = candidates.find(s => maxVal / s <= 6) || candidates[candidates.length-1];
+  step = Math.max(1, Math.round(step));
+  return step;
+}
+
+function drawBars(canvasId, seriesA, seriesB, title, labels, colorA='#38bdf8', colorB='#f59e0b'){
+  const c=document.getElementById(canvasId); const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,c.width,c.height);
+  const padL=56, padR=12, padT=18, padB=42; const W=c.width-padL-padR, H=c.height-padT-padB;
+
+  const maxVal = Math.max(1, ...seriesA.map(d=>d.avgImmune||0), ...(seriesB?seriesB.map(d=>d.avgImmune||0):[0]));
+  const upperRaw = maxVal*1.15;
+  const step = niceStepInt(upperRaw/5);
+  const yMax = Math.max(step, Math.ceil(upperRaw/step)*step);
+
+  // 坐標與整數刻度
+  ctx.strokeStyle='#334155'; ctx.strokeRect(padL,padT,W,H);
+  ctx.fillStyle='#94a3b8'; ctx.font='12px system-ui'; ctx.textAlign='left';
+  for(let v=0; v<=yMax+1e-6; v+=step){
+    const y = padT + H * (1 - v / yMax);
+    ctx.fillText((v).toFixed(0), 8, y+4);
+    ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(padL+W,y); ctx.strokeStyle='rgba(148,163,184,.15)'; ctx.stroke();
+  }
+
+  const n=seriesA.length; const groupW=W/(n*1.3), gap=groupW*0.3;
+  const isCompare = !!seriesB;
+
+  seriesA.forEach((d,i)=>{
+    const x0 = padL + i*(groupW+gap) + gap;
+    if(isCompare){
+      const bw = (groupW - 6)/2;
+      const hA = H*((d.avgImmune||0) / yMax);
+      const hB = H*(((seriesB[i]?.avgImmune)||0) / yMax);
+      ctx.fillStyle=colorA; ctx.fillRect(x0, padT+H-hA, bw, hA);
+      ctx.fillStyle=colorB; ctx.fillRect(x0+bw+6, padT+H-hB, bw, hB);
+      ctx.fillStyle='#93c5fd'; ctx.textAlign='center';
+      ctx.fillText((d.avgImmune||0).toFixed(1), x0+bw/2, Math.max(padT+12, padT+H-hA-6));
+      ctx.fillStyle='#fde68a';
+      ctx.fillText(((seriesB[i]?.avgImmune)||0).toFixed(1), x0+bw+6+bw/2, Math.max(padT+12, padT+H-hB-6));
+      ctx.fillStyle='#cbd5e1'; ctx.fillText(labels[d.key], x0+groupW/2, padT+H+18);
+    }else{
+      const bw = groupW;
+      const h = H*((d.avgImmune||0) / yMax);
+      ctx.fillStyle=colorA; ctx.fillRect(x0, padT+H-h, bw, h);
+      ctx.fillStyle='#93c5fd'; ctx.textAlign='center';
+      ctx.fillText((d.avgImmune||0).toFixed(1), x0+bw/2, Math.max(padT+12, padT+H-h-6));
+      ctx.fillStyle='#cbd5e1'; ctx.fillText(labels[d.key], x0+bw/2, padT+H+18);
+    }
+  });
+
+  ctx.fillStyle='#cbd5e1'; ctx.textAlign='left'; ctx.fillText(title, padL, 14);
+}
+
+function refreshChartsAndTable(){
+  const mode = document.querySelector('input[name="vaccView"]:checked').value; // ALL / VACC / UNVACC / COMPARE
+  const legend = $('#legend'); legend.style.display = (mode==='COMPARE') ? 'flex' : 'none';
+
+  const tALL = aggAvgImmune(keysPT,'type', null);
+  const sALL = aggAvgImmune(keysST,'state', null);
+  const rALL = aggAvgImmune(keysRT,'route', null);
+  const tV = aggAvgImmune(keysPT,'type', true);
+  const sV = aggAvgImmune(keysST,'state', true);
+  const rV = aggAvgImmune(keysRT,'route', true);
+  const tU = aggAvgImmune(keysPT,'type', false);
+  const sU = aggAvgImmune(keysST,'state', false);
+  const rU = aggAvgImmune(keysRT,'route', false);
+
+  if(mode==='COMPARE'){
+    drawBars('chartByType', tV, tU, '平均免疫防禦力值（依病原體種類｜比較）', labelPT);
+    drawBars('chartByState', sV, sU, '平均免疫防禦力值（依人體狀況｜比較）', labelST);
+    drawBars('chartByRoute', rV, rU, '平均免疫防禦力值（依進攻入口｜比較）', labelRT);
+  }else if(mode==='VACC'){
+    drawBars('chartByType', tV, null, '平均免疫防禦力值（依病原體種類｜已施打疫苗）', labelPT);
+    drawBars('chartByState', sV, null, '平均免疫防禦力值（依人體狀況｜已施打疫苗）', labelST);
+    drawBars('chartByRoute', rV, null, '平均免疫防禦力值（依進攻入口｜已施打疫苗）', labelRT);
+  }else if(mode==='UNVACC'){
+    drawBars('chartByType', tU, null, '平均免疫防禦力值（依病原體種類｜未接種）', labelPT);
+    drawBars('chartByState', sU, null, '平均免疫防禦力值（依人體狀況｜未接種）', labelST);
+    drawBars('chartByRoute', rU, null, '平均免疫防禦力值（依進攻入口｜未接種）', labelRT);
+  }else{
+    drawBars('chartByType', tALL, null, '平均免疫防禦力值（依病原體種類｜全部）', labelPT);
+    drawBars('chartByState', sALL, null, '平均免疫防禦力值（依人體狀況｜全部）', labelST);
+    drawBars('chartByRoute', rALL, null, '平均免疫防禦力值（依進攻入口｜全部）', labelRT);
+  }
+
+  // 表格
+  const tbody=$('#summaryRows'); const thead=$('#thead'); tbody.innerHTML='';
+  if(mode==='COMPARE'){
+    thead.innerHTML='<tr><th>維度</th><th>分類</th><th>樣本數（疫苗 / 未接種）</th><th>平均免疫防禦力值（疫苗 / 未接種）</th><th>成功率（疫苗 / 未接種）</th></tr>';
+    const rows=[...keysPT.map(k=>({dim:'病原體', name:labelPT[k],
+                  nV:tV.find(x=>x.key===k).n, nU:tU.find(x=>x.key===k).n,
+                  aV:tV.find(x=>x.key===k).avgImmune, aU:tU.find(x=>x.key===k).avgImmune,
+                  rV:tV.find(x=>x.key===k).rate, rU:tU.find(x=>x.key===k).rate})),
+                ...keysST.map(k=>({dim:'人體狀況', name:labelST[k],
+                  nV:sV.find(x=>x.key===k).n, nU:sU.find(x=>x.key===k).n,
+                  aV:sV.find(x=>x.key===k).avgImmune, aU:sU.find(x=>x.key===k).avgImmune,
+                  rV:sV.find(x=>x.key===k).rate, rU:sU.find(x=>x.key===k).rate})),
+                ...keysRT.map(k=>({dim:'進攻入口', name:labelRT[k],
+                  nV:rV.find(x=>x.key===k).n, nU:rU.find(x=>x.key===k).n,
+                  aV:rV.find(x=>x.key===k).avgImmune, aU:rU.find(x=>x.key===k).avgImmune,
+                  rV:rV.find(x=>x.key===k).rate, rU:rU.find(x=>x.key===k).rate}))];
+    if(!rows.some(r=>r.nV>0||r.nU>0)){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#94a3b8">尚無資料</td></tr>'; return; }
+    rows.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.dim}</td><td>${r.name}</td>
+        <td>${r.nV} / ${r.nU}</td>
+        <td>${(r.aV||0).toFixed(1)} / ${(r.aU||0).toFixed(1)}</td>
+        <td>${r.rV}% / ${r.rU}%</td>`;
+      tbody.appendChild(tr);
+    });
+  }else{
+    thead.innerHTML='<tr><th>維度</th><th>分類</th><th>樣本數</th><th>平均免疫防禦力值</th><th>免疫成功率</th></tr>';
+    const srcT = (mode==='VACC')? tV : (mode==='UNVACC')? tU : tALL;
+    const srcS = (mode==='VACC')? sV : (mode==='UNVACC')? sU : sALL;
+    const srcR = (mode==='VACC')? rV : (mode==='UNVACC')? rU : rALL;
+    const rows=[...srcT.map(x=>({dim:'病原體', name:labelPT[x.key], n:x.n, avg:x.avgImmune, rate:x.rate})),
+                ...srcS.map(x=>({dim:'人體狀況', name:labelST[x.key], n:x.n, avg:x.avgImmune, rate:x.rate})),
+                ...srcR.map(x=>({dim:'進攻入口', name:labelRT[x.key], n:x.n, avg:x.avgImmune, rate:x.rate}))];
+    if(!rows.some(r=>r.n>0)){ tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:#94a3b8">尚無資料</td></tr>'; return; }
+    rows.forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.dim}</td><td>${r.name}</td><td>${r.n}</td><td>${r.avg.toFixed(1)}</td><td>${r.rate}%</td>`; tbody.appendChild(tr); });
+  }
+}
+
+// 綁定按鈕
+$('#btnStart').onclick=()=>{
+  const sel={
+    type:document.querySelector('input[name="pathType"]:checked').value,
+    state:document.querySelector('input[name="bodyState"]:checked').value,
+    vaccinated:document.querySelector('input[name="vaccStatus"]:checked').value==='VACC',
+    route:document.querySelector('input[name="route"]:checked').value
+  };
+  simulateBattle(sel);
+};
+$('#btnReset').onclick=()=>{resetLog();prog.pLv=prog.iLv=1;prog.pXP=prog.iXP=0;prog.pNext=prog.iNext=100;prog.memoryLevel=0;memoBadge.textContent='無';updateBars();log('已重設');};
+$('#btnClearStats').onclick=()=>{history.length=0; refreshChartsAndTable();};
+
+// 視圖 chips 變更即刷新
+document.querySelectorAll('input[name="vaccView"]').forEach(el=>{
+  el.addEventListener('change', refreshChartsAndTable);
+});
+
+// 初始
+updateBars(); refreshChartsAndTable();
+</script>
+</body>
+</html>
