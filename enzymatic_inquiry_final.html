@@ -187,20 +187,23 @@
       line-height: 1.5;
     }
 
+    /* 調整表格變窄、圖變寬，且高度一致 */
     .data-flex {
       display: flex;
       gap: 16px;
-      align-items: flex-start;
+      align-items: stretch;      /* 左右等高 */
       margin-top: 12px;
     }
 
     .data-flex .data-table-wrapper {
-      flex: 1;
+      flex: 0 0 35%;             /* 表格約 35% 寬 */
     }
 
     .data-flex .chart-area {
-      flex: 1;
+      flex: 0 0 65%;             /* 圖表約 65% 寬 */
       margin-top: 0;
+      display: flex;
+      align-items: center;
     }
 
     @media (max-width: 600px) {
@@ -216,6 +219,11 @@
       }
       .data-flex {
         flex-direction: column;
+        align-items: stretch;
+      }
+      .data-flex .data-table-wrapper,
+      .data-flex .chart-area {
+        flex: 1 1 100%;
       }
     }
   </style>
@@ -246,7 +254,7 @@
       <h2>一、實驗目的與科學原理</h2>
       <p>
         本實驗將在五支試管中分別放入
-        <span class="highlight">酵母菌、煮沸的紅蘿蔔、新鮮紅蘿蔔、新鮮葉片、乾枯葉片</span>，
+        <span class="highlight">酵母菌、煮沸的金針菇、新鮮的金針菇、不加檸檬酸的紅蘿蔔、加檸檬酸的紅蘿蔔</span>，
         再加入<strong>雙氧水（過氧化氫，H<sub>2</sub>O<sub>2</sub>）</strong>，觀察並測量產生的氧氣量。
       </p>
       <p>
@@ -283,22 +291,22 @@
             </tr>
             <tr>
               <td>2</td>
-              <td>煮沸的紅蘿蔔</td>
+              <td>煮沸的金針菇</td>
               <td><input type="number" step="0.1" class="data-input" id="tube2" placeholder="0.0"></td>
             </tr>
             <tr>
               <td>3</td>
-              <td>新鮮紅蘿蔔</td>
+              <td>新鮮的金針菇</td>
               <td><input type="number" step="0.1" class="data-input" id="tube3" placeholder="0.0"></td>
             </tr>
             <tr>
               <td>4</td>
-              <td>新鮮葉片</td>
+              <td>不加檸檬酸的紅蘿蔔</td>
               <td><input type="number" step="0.1" class="data-input" id="tube4" placeholder="0.0"></td>
             </tr>
             <tr>
               <td>5</td>
-              <td>乾枯葉片</td>
+              <td>加檸檬酸的紅蘿蔔</td>
               <td><input type="number" step="0.1" class="data-input" id="tube5" placeholder="0.0"></td>
             </tr>
             </tbody>
@@ -306,8 +314,6 @@
         </div>
 
         <div class="chart-area">
-          
-          
           <canvas id="oxygenChart"></canvas>
         </div>
       </div>
@@ -315,10 +321,9 @@
 
     <!-- 四. 討論問題第一部分 -->
     <section id="discussion1-section">
-      <h2>三、討論問題（一）— 比較第 2 支（煮沸的紅蘿蔔）與第 3 支（新鮮紅蘿蔔）試管</h2>
-      
+      <h2>三、討論問題（一）— 比較第 2 支（煮沸的金針菇）與第 3 支（新鮮的金針菇）試管</h2>
+
       <div class="question-block">
-        
         <ol>
           <li>操作變因是什麼？</li>
         </ol>
@@ -338,10 +343,9 @@
 
     <!-- 五. 討論問題第二部分 -->
     <section id="discussion2-section">
-      <h2>四、討論問題（二）— 比較第 4 支（新鮮葉片）與第 5 支（乾枯葉片）試管</h2>
-      
+      <h2>四、討論問題（二）— 比較第 4 支（不加檸檬酸的紅蘿蔔）與第 5 支（加檸檬酸的紅蘿蔔）試管</h2>
+
       <div class="question-block">
-        
         <ol>
           <li>操作變因是什麼？</li>
         </ol>
@@ -361,10 +365,9 @@
 
     <!-- 六. 討論問題第三部分 -->
     <section id="discussion3-section">
-      <h2>五、討論問題（三）— 比較第 1 支（酵母菌）、第 3 支（新鮮紅蘿蔔）與第 4 支（新鮮葉片）試管</h2>
-      
+      <h2>五、討論問題（三）— 比較第 1 支（酵母菌）、第 3 支（新鮮的金針菇）與第 4 支（不加檸檬酸的紅蘿蔔）試管</h2>
+
       <div class="question-block">
-        
         <ol>
           <li>操作變因是什麼？</li>
         </ol>
@@ -486,10 +489,7 @@
 
   let oxygenChart = null;
 
-
-
-
-async function downloadPNG() {
+  async function downloadPNG() {
     const card = document.querySelector('.card');
     if (!card) return;
 
@@ -525,10 +525,10 @@ async function downloadPNG() {
 
     const labels = [
       "1 酵母菌",
-      "2 煮沸紅蘿蔔",
-      "3 新鮮紅蘿蔔",
-      "4 新鮮葉片",
-      "5 乾枯葉片"
+      "2 煮沸的金針菇",
+      "3 新鮮的金針菇",
+      "4 不加檸檬酸的紅蘿蔔",
+      "5 加檸檬酸的紅蘿蔔"
     ];
 
     if (oxygenChart) {
@@ -546,6 +546,7 @@ async function downloadPNG() {
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         scales: {
           y: {
             beginAtZero: true,
@@ -587,17 +588,18 @@ async function downloadPNG() {
   });
 </script>
 
-    <div style="margin-top:40px; padding:20px; background:#f0f7ff; border-radius:12px; border:1px solid #c6ddff; font-size:18px;">
-      <h3 style="color:#1a4c9c; margin-top:0;">📱 使用 iPad 時如何儲存 PDF？</h3>
-      <p>如果您使用 iPad，按下「下載 PDF」後，PDF 會在<strong>新分頁開啟</strong>，請依照下列步驟儲存檔案：</p>
-      <ol>
-        <li>等待 PDF 在新分頁開啟。</li>
-        <li>點右上角的 <strong>「分享」按鈕（方框＋上箭頭）」</strong>。</li>
-        <li>選擇 <strong>「儲存到檔案」</strong>。</li>
-        <li>選擇「儲存」。</li>
-      </ol>
-      <p>完成後即可將 PDF 上傳給老師！</p>
-    </div>
+<div style="margin-top:40px; padding:20px; background:#f0f7ff; border-radius:12px; border:1px solid:#c6ddff; font-size:18px;">
+  <h3 style="color:#1a4c9c; margin-top:0;">📱 使用 iPad 時如何儲存 PDF？</h3>
+  <p>如果您使用 iPad，按下「下載 PDF」後，PDF 會在<strong>新分頁開啟</strong>，請依照下列步驟儲存檔案：</p>
+  <ol>
+    <li>等待 PDF 在新分頁開啟。</li>
+    <li>點右上角的 <strong>「分享」按鈕（方框＋上箭頭）」</strong>。</li>
+    <li>選擇 <strong>「儲存到檔案」</strong>。</li>
+    <li>檔名請輸入【班級座號姓名】（例如：80115王小明）。</li>
+    <li>選擇「儲存」即可。</li>
+  </ol>
+  <p>完成後即可將 PDF 上傳給老師！若要讀取檔案上傳，請到「檔案」APP中選擇你所儲存的檔案。</p>
+</div>
 
 </body>
 </html>
