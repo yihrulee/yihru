@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>酵素活性實驗數位學習單 (v2.0)</title>
+<style>
+  :root {
+    --primary: #2c7744; /* 自然科風格綠色 */
+    --accent: #eafbea;
+    --border: #ddd;
+    --text: #333;
+    --gap: 16px;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", system-ui, sans-serif;
+    margin: 0; padding: 20px; line-height: 1.5; color: var(--text); background: #f9f9f9;
+  }
+  h1 { font-size: 22px; margin: 0 0 10px; color: var(--primary); text-align: center; }
+  h2 { font-size: 18px; margin: 0 0 10px; border-left: 5px solid var(--primary); padding-left: 10px; }
+  
+  /* 版面配置 */
+  .container { max-width: 1000px; margin: 0 auto; }
+  .meta-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; background: #fff; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+  .meta-grid label { font-size: 14px; font-weight: bold; color: #555; }
+  .meta-grid input { width: 100%; padding: 6px; border: 1px solid var(--border); border-radius: 4px; margin-top: 4px; }
+
+  .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: var(--gap); }
+  
+  .card {
+    background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 15px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  }
+
+  /* 表格樣式 */
+  .table-responsive { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 10px; }
+  th, td { border: 1px solid var(--border); padding: 8px; text-align: center; }
+  th { background: var(--accent); color: var(--primary); white-space: nowrap; }
+  
+  /* 輸入框優化 */
+  input[type="number"] {
+    width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; text-align: center;
+    font-size: 14px; -moz-appearance: textfield; /* Firefox remove spinner */
+  }
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+  /* 按鈕群組 */
+  .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  button {
+    cursor: pointer; padding: 6px 12px; border: none; border-radius: 4px; 
+    background: #eee; color: #333; font-size: 14px; transition: 0.2s;
+  }
+  button:hover { background: #ddd; }
+  button.primary { background: var(--primary); color: #fff; }
+  button.primary:hover { background: #236336; }
+  button.danger { background: #fff1f0; color: #d93025; }
+  
+  /* 畫布 */
+  canvas { width: 100%; height: 300px; border: 1px solid #ccc; border-radius: 4px; background: #fff; margin-top: 10px; }
+
+  /* CER 區塊 */
+  .cer-grid { display: grid; gap: 10px; }
+  .cer-box label { font-weight: bold; display: block; margin-bottom: 5px; color: var(--primary); }
+  textarea { width: 100%; height: 100px; padding: 8px; border: 1px solid var(--border); border-radius: 4px; resize: vertical; font-family: inherit; }
+
+  /* 提示文字 */
+  .hint { font-size: 13px; color: #666; background: #f0f0f0; padding: 8px; border-radius: 4px; margin-bottom: 10px; display: flex; gap: 10px; align-items: center; }
+  .radio-group { display: flex; gap: 15px; align-items: center; }
+
+  /* 列印設定 */
+  @media print {
+    @page { size: A4; margin: 10mm; }
+    body { background: #fff; padding: 0; }
+    .no-print { display: none !important; }
+    .card { border: 1px solid #000; box-shadow: none; margin-bottom: 20px; break-inside: avoid; }
+    h1 { font-size: 18px; margin-bottom: 5px; }
+    input, textarea { border: none; border-bottom: 1px solid #ccc; resize: none; padding: 0; }
+    canvas { height: 220px; }
+    .row { display: block; } /* 強制單欄列印，避免圖表被切斷 */
+    .card { width: 100%; margin-bottom: 15px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>酵素活性探究實驗記錄表</h1>
+  
+  <div class="meta-grid">
+    <div><label>班級</label><input type="text" id="cls"></div>
+    <div><label>座號</label><input type="number" id="no"></div>
+    <div><label>姓名</label><input type="text" id="name"></div>
+    <div><label>日期</label><input type="date" id="date"></div>
+  </div>
+
+  <div class="hint no-print">
+    <strong>💡 計算設定：</strong>
+    <div class="radio-group">
+      <label><input type="radio" name="calcMode" value="height" checked onchange="updateLabels()"> 測量泡沫高度 (cm)</label>
+      <label><input type="radio" name="calcMode" value="time" onchange="updateLabels()"> 測量反應時間 (s)</label>
+    </div>
+    <span style="margin-left:auto; font-size:12px; color:#999;">預設除數：高度/30 或 1/時間</span>
+  </div>
+
+  <div class="row">
+    <section class="card">
+      <h2>實驗 A：溫度對酵素活性的影響</h2>
+      <div class="table-responsive">
+        <table id="tableA">
+          <thead>
+            <tr>
+              <th width="20%">溫度 (°C)</th>
+              <th width="20%">試次 1</th>
+              <th width="20%">試次 2</th>
+              <th width="20%">平均</th>
+              <th width="20%">速率</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><input type="number" value="10"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+            <tr><td><input type="number" value="30"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+            <tr><td><input type="number" value="50"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+            <tr><td><input type="number" value="70"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="btn-group no-print">
+        <button onclick="addRow('tableA')">＋ 增加列</button>
+        <button class="primary" onclick="processData('A')">計算並繪圖</button>
+        <button class="danger" onclick="clearData('A')">清除</button>
+      </div>
+      <canvas id="canvasA" width="800" height="500"></canvas>
+    </section>
+
+    <section class="card">
+      <h2>實驗 B：酸鹼度 (pH) 對酵素活性的影響</h2>
+      <div class="table-responsive">
+        <table id="tableB">
+          <thead>
+            <tr>
+              <th width="20%">pH 值</th>
+              <th width="20%">試次 1</th>
+              <th width="20%">試次 2</th>
+              <th width="20%">平均</th>
+              <th width="20%">速率</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><input type="number" value="3"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+            <tr><td><input type="number" value="5"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+            <tr><td><input type="number" value="7"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+            <tr><td><input type="number" value="9"></td><td><input type="number" class="t1"></td><td><input type="number" class="t2"></td><td class="avg">-</td><td class="rate">-</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="btn-group no-print">
+        <button onclick="addRow('tableB')">＋ 增加列</button>
+        <button class="primary" onclick="processData('B')">計算並繪圖</button>
+        <button class="danger" onclick="clearData('B')">清除</button>
+      </div>
+      <canvas id="canvasB" width="800" height="500"></canvas>
+    </section>
+  </div>
+
+  <section class="card" style="margin-top: 20px;">
+    <h2>CER 科學論證與總結</h2>
+    <div class="cer-grid">
+      <div class="cer-box">
+        <label>1. 主張 (Claim)</label>
+        <textarea id="claim" placeholder="結論：酵素活性最高的條件為何？（請回答最適溫度與最適 pH）"></textarea>
+      </div>
+      <div class="cer-box">
+        <label>2. 證據 (Evidence)</label>
+        <textarea id="evidence" placeholder="請引用圖表中的具體數據支持你的主張（例如：在溫度 X 度時，速率達到最高的 Y...）。"></textarea>
+      </div>
+      <div class="cer-box">
+        <label>3. 推理 (Reasoning)</label>
+        <textarea id="reasoning" placeholder="科學原理：為什麼超過最適範圍後，反應速率會下降？（關鍵字：蛋白質結構、變性、動能）"></textarea>
+      </div>
+    </div>
+    
+    <div class="btn-group no-print" style="margin-top:20px; border-top:1px solid #eee; padding-top:10px;">
+      <button onclick="demoFill()">🧪 填入示範數據 (備課用)</button>
+      <button onclick="saveToLocal()">💾 暫存 (本機)</button>
+      <button onclick="loadFromLocal()">📂 讀取暫存</button>
+      <button onclick="exportCSV()">📊 匯出 CSV</button>
+      <button class="primary" onclick="window.print()">🖨️ 列印 / 存為 PDF</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// 初始化設定
+document.getElementById('date').valueAsDate = new Date();
+
+function updateLabels() {
+  // 切換模式時不需要重算，僅改變邏輯，等待用戶點擊計算
+  const mode = document.querySelector('input[name="calcMode"]:checked').value;
+  // 可選：在此處動態改變表頭文字，目前保持通用 "試次" 
+}
+
+function addRow(tableId) {
+  const tbody = document.querySelector(`#${tableId} tbody`);
+  const tr = document.createElement("tr");
+  tr.innerHTML = `
+    <td><input type="number"></td>
+    <td><input type="number" class="t1"></td>
+    <td><input type="number" class="t2"></td>
+    <td class="avg">-</td><td class="rate">-</td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function processData(type) {
+  const tableId = `table${type}`;
+  const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+  const mode = document.querySelector('input[name="calcMode"]:checked').value;
+  
+  let dataPoints = [];
+
+  rows.forEach(row => {
+    const xVal = parseFloat(row.cells[0].querySelector('input').value);
+    const t1 = parseFloat(row.cells[1].querySelector('input').value);
+    const t2 = parseFloat(row.cells[2].querySelector('input').value);
+    
+    // 計算平均
+    let avg = null;
+    let validCount = 0;
+    let sum = 0;
+    
+    if(!isNaN(t1)) { sum += t1; validCount++; }
+    if(!isNaN(t2)) { sum += t2; validCount++; }
+    
+    if (validCount > 0) {
+      avg = sum / validCount;
+      row.cells[3].textContent = avg.toFixed(2);
+      
+      // 計算速率
+      let rate = 0;
+      if (mode === 'height') {
+        // 速率 = 高度 / 30秒
+        rate = avg / 30;
+      } else {
+        // 速率 = 1 / 時間 (若時間為0防呆)
+        rate = avg > 0 ? (1 / avg) : 0;
+      }
+      row.cells[4].textContent = rate.toFixed(4);
+      
+      if (!isNaN(xVal)) {
+        dataPoints.push({ x: xVal, y: rate });
+      }
+    } else {
+      row.cells[3].textContent = "-";
+      row.cells[4].textContent = "-";
+    }
+  });
+
+  // 繪圖
+  drawGraph(`canvas${type}`, dataPoints, type === 'A' ? '溫度 (°C)' : 'pH 值');
+}
+
+function drawGraph(canvasId, data, xLabel) {
+  const canvas = document.getElementById(canvasId);
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width;
+  const H = canvas.height;
+  const padding = { top: 40, right: 30, bottom: 60, left: 70 };
+
+  // 清除畫布
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = "#fff"; ctx.fillRect(0,0,W,H); // 白底
+
+  // 排序數據
+  data.sort((a, b) => a.x - b.x);
+
+  if (data.length === 0) {
+    ctx.font = "20px sans-serif"; ctx.fillStyle = "#999"; ctx.textAlign = "center";
+    ctx.fillText("請輸入數據並點擊計算", W/2, H/2);
+    return;
+  }
+
+  // 計算範圍
+  const xValues = data.map(d => d.x);
+  const yValues = data.map(d => d.y);
+  let xMin = Math.min(...xValues, 0); // 讓軸包含0
+  let xMax = Math.max(...xValues);
+  let yMin = 0;
+  let yMax = Math.max(...yValues);
+  
+  // 讓圖表有些邊距
+  xMax = xMax + (xMax - xMin) * 0.1 || 10; 
+  yMax = yMax * 1.2 || 1; // 頂部留空
+
+  // 座標轉換函數
+  const getX = (val) => padding.left + (val - xMin) / (xMax - xMin) * (W - padding.left - padding.right);
+  const getY = (val) => H - padding.bottom - (val - yMin) / (yMax - yMin) * (H - padding.top - padding.bottom);
+
+  // 畫軸線
+  ctx.beginPath(); ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+  ctx.moveTo(padding.left, padding.top);
+  ctx.lineTo(padding.left, H - padding.bottom); // Y軸
+  ctx.lineTo(W - padding.right, H - padding.bottom); // X軸
+  ctx.stroke();
+
+  // 軸標籤
+  ctx.fillStyle = "#000"; ctx.font = "16px sans-serif"; ctx.textAlign = "center";
+  ctx.fillText(xLabel, padding.left + (W - padding.left - padding.right)/2, H - 15);
+  
+  ctx.save();
+  ctx.translate(20, H/2); ctx.rotate(-Math.PI/2);
+  ctx.fillText("反應速率 (任意單位)", 0, 0);
+  ctx.restore();
+
+  // 畫網格與刻度 (簡化版：僅畫數據點對應的刻度，避免太複雜)
+  ctx.font = "12px sans-serif"; ctx.fillStyle = "#666"; ctx.strokeStyle = "#eee"; ctx.lineWidth = 1;
+  
+  // X軸刻度
+  for(let i=0; i<=5; i++){
+      let val = xMin + (xMax-xMin)*(i/5);
+      let x = getX(val);
+      ctx.fillText(val.toFixed(0), x, H - padding.bottom + 20);
+      ctx.beginPath(); ctx.moveTo(x, padding.top); ctx.lineTo(x, H - padding.bottom); ctx.stroke();
+  }
+  // Y軸刻度
+  ctx.textAlign = "right";
+  for(let i=0; i<=5; i++){
+      let val = yMin + (yMax-yMin)*(i/5);
+      let y = getY(val);
+      ctx.fillText(val.toFixed(2), padding.left - 10, y + 5);
+      ctx.beginPath(); ctx.moveTo(padding.left, y); ctx.lineTo(W - padding.right, y); ctx.stroke();
+  }
+
+  // 畫折線
+  ctx.beginPath(); ctx.strokeStyle = "#2c7744"; ctx.lineWidth = 3;
+  data.forEach((d, i) => {
+    if(i === 0) ctx.moveTo(getX(d.x), getY(d.y));
+    else ctx.lineTo(getX(d.x), getY(d.y));
+  });
+  ctx.stroke();
+
+  // 畫數據點
+  ctx.fillStyle = "#e04e39";
+  data.forEach(d => {
+    ctx.beginPath();
+    ctx.arc(getX(d.x), getY(d.y), 6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
+function clearData(type) {
+  if(!confirm("確定要清除此實驗的數據嗎？")) return;
+  const inputs = document.querySelectorAll(`#table${type} input`);
+  inputs.forEach(i => i.value = "");
+  document.querySelectorAll(`#table${type} .avg, #table${type} .rate`).forEach(c => c.textContent = "-");
+  const canvas = document.getElementById(`canvas${type}`);
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,canvas.width, canvas.height);
+}
+
+// 本機儲存功能
+function saveToLocal() {
+  const data = {
+    meta: {
+      cls: document.getElementById('cls').value,
+      no: document.getElementById('no').value,
+      name: document.getElementById('name').value,
+      date: document.getElementById('date').value
+    },
+    tables: {
+      A: getTableValues('tableA'),
+      B: getTableValues('tableB')
+    },
+    cer: {
+      claim: document.getElementById('claim').value,
+      evidence: document.getElementById('evidence').value,
+      reasoning: document.getElementById('reasoning').value
+    }
+  };
+  localStorage.setItem('enzymeLabData', JSON.stringify(data));
+  alert('資料已暫存到瀏覽器！');
+}
+
+function loadFromLocal() {
+  const raw = localStorage.getItem('enzymeLabData');
+  if(!raw) { alert('找不到暫存資料'); return; }
+  const data = JSON.parse(raw);
+  
+  document.getElementById('cls').value = data.meta.cls || "";
+  document.getElementById('no').value = data.meta.no || "";
+  document.getElementById('name').value = data.meta.name || "";
+  document.getElementById('date').value = data.meta.date || "";
+  
+  setTableValues('tableA', data.tables.A);
+  setTableValues('tableB', data.tables.B);
+  
+  document.getElementById('claim').value = data.cer.claim || "";
+  document.getElementById('evidence').value = data.cer.evidence || "";
+  document.getElementById('reasoning').value = data.cer.reasoning || "";
+  
+  processData('A');
+  processData('B');
+}
+
+function getTableValues(id) {
+  return Array.from(document.querySelectorAll(`#${id} tbody tr`)).map(tr => ({
+    col1: tr.cells[0].querySelector('input').value,
+    t1: tr.cells[1].querySelector('input').value,
+    t2: tr.cells[2].querySelector('input').value
+  }));
+}
+
+function setTableValues(id, rows) {
+  const tbody = document.querySelector(`#${id} tbody`);
+  tbody.innerHTML = ''; // 清空舊的
+  rows.forEach(r => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><input type="number" value="${r.col1}"></td>
+      <td><input type="number" class="t1" value="${r.t1}"></td>
+      <td><input type="number" class="t2" value="${r.t2}"></td>
+      <td class="avg">-</td><td class="rate">-</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function exportCSV() {
+  let csv = "\uFEFF"; // BOM for Excel
+  csv += "班級,座號,姓名,日期\n";
+  csv += `${document.getElementById('cls').value},${document.getElementById('no').value},${document.getElementById('name').value},${document.getElementById('date').value}\n\n`;
+  
+  csv += "實驗A (溫度)\n溫度,試次1,試次2,平均,速率\n";
+  document.querySelectorAll('#tableA tbody tr').forEach(r => {
+    const txt = (idx) => r.cells[idx].querySelector('input') ? r.cells[idx].querySelector('input').value : r.cells[idx].textContent;
+    csv += `${txt(0)},${txt(1)},${txt(2)},${r.cells[3].textContent},${r.cells[4].textContent}\n`;
+  });
+
+  csv += "\n實驗B (pH)\npH,試次1,試次2,平均,速率\n";
+  document.querySelectorAll('#tableB tbody tr').forEach(r => {
+    const txt = (idx) => r.cells[idx].querySelector('input') ? r.cells[idx].querySelector('input').value : r.cells[idx].textContent;
+    csv += `${txt(0)},${txt(1)},${txt(2)},${r.cells[3].textContent},${r.cells[4].textContent}\n`;
+  });
+  
+  csv += `\nClaim,${document.getElementById('claim').value.replace(/,/g, '，')}\n`;
+  csv += `Evidence,${document.getElementById('evidence').value.replace(/,/g, '，')}\n`;
+  csv += `Reasoning,${document.getElementById('reasoning').value.replace(/,/g, '，')}\n`;
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "酵素實驗數據.csv";
+  link.click();
+}
+
+function demoFill() {
+  // 模擬溫度數據 (鐘形曲線)
+  const dataA = [ {x:10, t1:5, t2:5.5}, {x:30, t1:12, t2:11}, {x:40, t1:18, t2:19}, {x:60, t1:2, t2:1} ];
+  setTableValues('tableA', dataA.map(d=>({col1:d.x, t1:d.t1, t2:d.t2})));
+  processData('A');
+  
+  // 模擬pH數據 (鐘形曲線)
+  const dataB = [ {x:3, t1:1, t2:1.5}, {x:5, t1:6, t2:7}, {x:7, t1:15, t2:14}, {x:9, t1:8, t2:8.5} ];
+  setTableValues('tableB', dataB.map(d=>({col1:d.x, t1:d.t1, t2:d.t2})));
+  processData('B');
+}
+</script>
+</body>
+</html>

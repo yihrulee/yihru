@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生物尺度探索 - 互動教學</title>
+    
+    <!-- 引入 Tailwind CSS (樣式庫) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 和 ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 引入 Babel (讓瀏覽器看懂 JSX) -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        /* 自定義樣式補充 */
+        body { margin: 0; overflow: hidden; background-color: #000; }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #3b82f6;
+            margin-top: -8px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            border: 2px solid white;
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            height: 8px;
+            border-radius: 4px;
+            background: rgba(255,255,255,0.5);
+        }
+        @keyframes bounce-in {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-bounce-in {
+            animation: bounce-in 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // --- 簡單的 SVG 圖示組件 (取代 lucide-react) ---
+        const IconSearch = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        );
+        const IconZoomIn = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="11" x2="11" y1="8" y2="14"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+        );
+        const IconZoomOut = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><line x1="8" x2="14" y1="11" y2="11"/></svg>
+        );
+        const IconX = ({ className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+        );
+
+        // --- 資料庫 ---
+        const SCALE_ITEMS = [
+          // --- 宇宙尺度 ---
+          {
+            power: 27.0,
+            name: "可觀測宇宙",
+            icon: (
+               <div className="w-full h-full rounded-full bg-black border border-slate-700 shadow-[0_0_50px_rgba(255,255,255,0.2)] flex items-center justify-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(100,100,255,0.1),_transparent_70%)]"></div>
+                  <div className="text-xs text-slate-500 text-center px-2">Cosmic Web</div>
+               </div>
+            ),
+            type: "space",
+            description: "以地球為中心，理論上能觀測到的宇宙範圍，直徑約 930 億光年。"
+          },
+          {
+            power: 24.0,
+            name: "本星系群",
+            icon: (
+               <svg viewBox="0 0 100 100" className="w-full h-full text-purple-300 fill-current opacity-80">
+                  <circle cx="40" cy="40" r="10" filter="blur(4px)" />
+                  <circle cx="70" cy="60" r="8" filter="blur(4px)" />
+                  <circle cx="20" cy="70" r="5" filter="blur(4px)" />
+                  <circle cx="80" cy="20" r="4" filter="blur(3px)" />
+               </svg>
+            ),
+            type: "space",
+            description: "包含銀河系、仙女座星系等 50 多個星系的重力束縛集合，直徑約 1000 萬光年。"
+          },
+          {
+            power: 21.0,
+            name: "銀河系",
+            icon: "🌌",
+            type: "space",
+            description: "包含太陽系的巨大棒旋星系，擁有數千億顆恆星，直徑約 10 萬光年。"
+          },
+          {
+            power: 15.9,
+            name: "一光年",
+            icon: (
+                <div className="w-full h-full flex items-center justify-center text-yellow-100 font-serif italic text-[40px] drop-shadow-[0_0_10px_rgba(253,224,71,0.5)]">
+                    1 ly
+                </div>
+            ),
+            type: "space",
+            description: "光在真空中行走一年的距離，約 9.46 兆公里。"
+          },
+          {
+            power: 13.0,
+            name: "太陽系",
+            icon: (
+              <svg viewBox="0 0 200 200" className="w-full h-full text-blue-300 fill-none stroke-current opacity-60">
+                 <circle cx="100" cy="100" r="2" fill="yellow" stroke="none" />
+                 <ellipse cx="100" cy="100" rx="30" ry="20" strokeWidth="1" />
+                 <ellipse cx="100" cy="100" rx="50" ry="35" strokeWidth="1" />
+                 <ellipse cx="100" cy="100" rx="70" ry="50" strokeWidth="1" />
+                 <ellipse cx="100" cy="100" rx="90" ry="65" strokeWidth="1" />
+              </svg>
+            ),
+            type: "space",
+            description: "以太陽為中心，包含八大行星的行星系，範圍延伸至古柏帶約 100 億公里。"
+          },
+          {
+            power: 11.2,
+            name: "天文單位 (AU)",
+            icon: (
+              <svg viewBox="0 0 200 50" className="w-full h-full text-white fill-none stroke-current opacity-80">
+                <line x1="10" y1="25" x2="190" y2="25" strokeWidth="2" strokeDasharray="5,5" />
+                <circle cx="10" cy="25" r="6" fill="#fbbf24" stroke="none" />
+                <circle cx="190" cy="25" r="4" fill="#3b82f6" stroke="none" />
+                <text x="100" y="15" textAnchor="middle" fill="white" fontSize="14" stroke="none" fontWeight="bold">1 AU</text>
+              </svg>
+            ),
+            type: "space",
+            description: "地球到太陽的平均距離，約 1.5 億公里，常用於測量太陽系內距離。"
+          },
+          {
+            power: 9.1,
+            name: "太陽",
+            icon: (
+              <svg viewBox="0 0 100 100" className="w-full h-full text-yellow-500 fill-current animate-pulse">
+                 <circle cx="50" cy="50" r="40" className="fill-orange-400" />
+                 <circle cx="50" cy="50" r="48" className="stroke-yellow-300 stroke-2 fill-none opacity-50" />
+                 <path d="M50,0 L50,10 M50,90 L50,100 M0,50 L10,50 M90,50 L100,50 M15,15 L22,22 M78,78 L85,85 M15,85 L22,78 M78,22 L85,15" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+              </svg>
+            ),
+            type: "space",
+            description: "太陽系的中心恆星，直徑約 140 萬公里，是地球直徑的 109 倍。"
+          },
+          {
+            power: 8.1,
+            name: "木星",
+            icon: (
+              <svg viewBox="0 0 100 100" className="w-full h-full text-orange-300 fill-current">
+                <circle cx="50" cy="50" r="45" className="fill-[#d97706]" />
+                <path d="M10,30 Q50,20 90,30" fill="none" stroke="#fcd34d" strokeWidth="3" opacity="0.5" />
+                <path d="M5,50 Q50,40 95,50" fill="none" stroke="#78350f" strokeWidth="5" opacity="0.6" />
+                <path d="M10,70 Q50,80 90,70" fill="none" stroke="#fcd34d" strokeWidth="3" opacity="0.5" />
+                <circle cx="75" cy="65" r="6" fill="#7f1d1d" opacity="0.8" />
+              </svg>
+            ),
+            type: "space",
+            description: "太陽系最大的行星，直徑約 14 萬公里。"
+          },
+          
+          // --- 既有巨觀尺度 ---
+          {
+            power: 7.2,
+            name: "地球",
+            icon: "🌍",
+            type: "space",
+            description: "我們居住的星球，直徑約 12,742 公里。"
+          },
+          {
+            power: 5.6,
+            name: "台灣",
+            icon: (
+              <svg viewBox="0 0 100 200" className="w-full h-full text-green-500 fill-current drop-shadow-lg">
+                <path d="M45,10 C55,10 60,15 65,25 C70,40 80,60 75,80 C70,100 65,120 60,140 C55,160 50,180 45,190 C40,180 30,160 25,140 C20,110 25,80 30,50 C35,30 40,15 45,10 Z" />
+              </svg>
+            ),
+            type: "macro",
+            description: "美麗的寶島，南北長約 394 公里。"
+          },
+          {
+            power: 3.7,
+            name: "台北101",
+            icon: (
+              <svg viewBox="0 0 100 200" className="w-full h-full text-emerald-600 fill-current drop-shadow-md">
+                <rect x="30" y="160" width="40" height="40" />
+                <path d="M20,160 L80,160 L75,140 L25,140 Z" />
+                <path d="M22,140 L78,140 L73,120 L27,120 Z" />
+                <path d="M24,120 L76,120 L71,100 L29,100 Z" />
+                <path d="M26,100 L74,100 L69,80 L31,80 Z" />
+                <path d="M28,80 L72,80 L67,60 L33,60 Z" />
+                <rect x="45" y="10" width="10" height="50" />
+              </svg>
+            ),
+            type: "macro",
+            description: "台灣的地標，高度約 508 公尺。"
+          },
+          {
+            power: 1.5,
+            name: "藍鯨",
+            icon: (
+               <svg viewBox="0 0 100 50" className="w-full h-full text-blue-500 fill-current drop-shadow-lg">
+                 <path d="M10,25 Q30,10 60,15 T95,25 L90,30 Q60,40 30,35 T10,25 Z" />
+                 <path d="M65,15 Q75,5 85,15" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.5" />
+                 <circle cx="80" cy="22" r="1.5" fill="white" />
+               </svg>
+            ),
+            type: "animal",
+            description: "世界上最大的動物，長度可達 30 公尺。"
+          },
+          {
+            power: 0.5,
+            name: "長頸鹿",
+            icon: "🦒",
+            type: "animal",
+            description: "最高的陸生動物，身高約 5 公尺。"
+          },
+          {
+            power: 0,
+            name: "國中生",
+            icon: "🧍",
+            type: "human",
+            description: "身高約 1.6 公尺 (160 公分)。"
+          },
+          
+          // --- 微觀尺度 ---
+          {
+            power: -1.0,
+            name: "鴕鳥蛋",
+            icon: "🥚",
+            type: "animal",
+            description: "世界上最大的細胞之一，直徑約 15 公分。"
+          },
+          {
+            power: -2.0,
+            name: "一元硬幣",
+            icon: (
+              <div className="w-full h-full rounded-full bg-yellow-600 border-4 border-yellow-500 flex items-center justify-center text-white font-bold text-[80px] shadow-lg">
+                $1
+              </div>
+            ),
+            type: "object",
+            description: "直徑約 2 公分 (20 mm)。"
+          },
+          {
+            power: -2.7,
+            name: "咖啡豆",
+            icon: "☕",
+            type: "object",
+            description: "長度約 1 公分。"
+          },
+          {
+            power: -3.0,
+            name: "螞蟻",
+            icon: "🐜",
+            type: "animal",
+            description: "工蟻體長約 3-5 毫米 (mm)。"
+          },
+          {
+            power: -3.7,
+            name: "草履蟲",
+            icon: (
+                <svg viewBox="0 0 100 60" className="w-full h-full text-green-400 fill-current opacity-80 drop-shadow-sm">
+                    <ellipse cx="50" cy="30" rx="45" ry="20" className="stroke-2 stroke-green-600" />
+                    <circle cx="30" cy="30" r="5" className="fill-green-700" />
+                    <path d="M10,30 Q30,10 50,30 T90,30" fill="none" stroke="green-600" strokeWidth="2" strokeDasharray="4 2" />
+                </svg>
+            ),
+            type: "cell",
+            description: "原生動物，肉眼勉強可見，約 200 微米。"
+          },
+          {
+            power: -4.0,
+            name: "頭髮直徑",
+            icon: "💈",
+            type: "human",
+            description: "人類頭髮直徑約 100 微米 (µm)。"
+          },
+          {
+            power: -4.3,
+            name: "植物細胞",
+            icon: (
+               <div className="w-full h-full bg-green-200 border-4 border-green-600 rounded-sm grid grid-cols-2 gap-1 p-1">
+                   <div className="bg-green-300 rounded-full w-full h-full col-span-2"></div>
+               </div>
+            ),
+            type: "cell",
+            description: "含有細胞壁與葉綠體，約 50 微米。"
+          },
+          {
+            power: -5.0,
+            name: "紅血球",
+            icon: (
+              <div className="w-full h-full rounded-full bg-red-500 shadow-[inset_0_0_20px_rgba(0,0,0,0.3)] border-2 border-red-600"></div>
+            ),
+            type: "cell",
+            description: "雙凹圓盤狀，直徑約 7-8 微米 (µm)。"
+          },
+          {
+            power: -5.7,
+            name: "葉綠體",
+            icon: "🟢",
+            type: "organelle",
+            description: "植物進行光合作用的場所，約 5 微米。"
+          },
+          {
+            power: -6.0,
+            name: "大腸桿菌",
+            icon: (
+              <svg viewBox="0 0 100 40" className="w-full h-full text-pink-400 fill-current">
+                 <rect x="10" y="10" width="80" height="20" rx="10" />
+                 <path d="M90,20 L100,20" stroke="currentColor" strokeWidth="2" />
+                 <path d="M0,20 L10,20" stroke="currentColor" strokeWidth="2" />
+              </svg>
+            ),
+            type: "bacteria",
+            description: "腸道內的常見細菌，長約 2 微米。"
+          },
+          {
+            power: -6.5,
+            name: "粒線體",
+            icon: (
+                <svg viewBox="0 0 100 60" className="w-full h-full text-orange-400 fill-orange-200 stroke-orange-500 stroke-2">
+                    <rect x="5" y="5" width="90" height="50" rx="25" />
+                    <path d="M20,15 Q30,45 40,15 T60,15 T80,15" fill="none" strokeWidth="3" />
+                </svg>
+            ),
+            type: "organelle",
+            description: "細胞的發電廠，大小約 1 微米。"
+          },
+          {
+            power: -7.0,
+            name: "流感病毒",
+            icon: (
+              <svg viewBox="0 0 100 100" className="w-full h-full text-purple-500 fill-purple-300">
+                 <circle cx="50" cy="50" r="30" />
+                 <path d="M50,20 L50,10 M50,80 L50,90 M20,50 L10,50 M80,50 L90,50 M29,29 L22,22 M71,71 L78,78 M29,71 L22,78 M71,29 L78,22" stroke="currentColor" strokeWidth="4" strokeLinecap="round" />
+              </svg>
+            ),
+            type: "virus",
+            description: "約 100 奈米 (nm)，需用電子顯微鏡觀察。"
+          },
+          {
+            power: -8.0,
+            name: "DNA 螺旋",
+            icon: "🧬",
+            type: "molecule",
+            description: "生命遺傳物質，寬度約 2-3 奈米。"
+          },
+          {
+            power: -9.0,
+            name: "水分子",
+            icon: (
+                <div className="relative w-full h-full flex items-center justify-center">
+                     <div className="absolute w-[60%] h-[60%] bg-blue-500 rounded-full z-10 top-[20%] left-[20%]"></div>
+                     <div className="absolute w-[30%] h-[30%] bg-gray-300 rounded-full top-0 left-0"></div>
+                     <div className="absolute w-[30%] h-[30%] bg-gray-300 rounded-full top-0 right-0"></div>
+                </div>
+            ),
+            type: "molecule",
+            description: "H2O，直徑約 0.3 奈米。"
+          },
+          {
+            power: -10.0,
+            name: "碳原子",
+            icon: "⚛️",
+            type: "atom",
+            description: "構成生物體的主要原子，約 0.1 奈米 (1 埃)。"
+          },
+          {
+            power: -14.0,
+            name: "原子核",
+            icon: "🔴",
+            type: "atom",
+            description: "原子的中心，極小極重。"
+          }
+        ];
+
+        // 輔助函式：格式化科學記號
+        const formatPower = (pow) => {
+          const rounded = Math.round(pow * 10) / 10;
+          return (
+            <span className="font-mono">
+              10<sup>{rounded.toFixed(1)}</sup> m
+            </span>
+          );
+        };
+
+        // 輔助函式：取得單位標籤
+        const getUnitLabel = (power) => {
+          if (power >= 21) return "百萬光年 (Mly)";
+          if (power >= 16) return "光年 (ly)";
+          if (power >= 13) return "天文單位 (AU)";
+          if (power >= 3) return "公里 (km)";
+          if (power >= 0) return "公尺 (m)";
+          if (power >= -2) return "公分/毫米 (cm/mm)";
+          if (power >= -6) return "微米 (µm)";
+          if (power >= -9) return "奈米 (nm)";
+          return "皮米 (pm)";
+        };
+
+        // 輔助函式：取得背景顏色
+        const getBackgroundColor = (power) => {
+            if (power > 16) return "bg-black"; // 深空
+            if (power > 6) return "bg-slate-900"; // 太空/太陽系
+            if (power > 4) return "bg-blue-300"; // 高空
+            if (power > 1) return "bg-cyan-100"; // 巨觀世界
+            if (power > -3) return "bg-yellow-50"; // 小物件
+            if (power > -6) return "bg-pink-50"; // 細胞 (體液)
+            if (power > -9) return "bg-indigo-950"; // 分子 (暗視野)
+            return "bg-black"; // 原子
+        };
+
+        const App = () => {
+          // 起始尺度：人類 (0)
+          const [zoom, setZoom] = useState(0); 
+          const [selectedItem, setSelectedItem] = useState(null);
+          const containerRef = useRef(null);
+
+          // 處理滾輪縮放
+          useEffect(() => {
+            const handleWheel = (e) => {
+              // 防止網頁預設滾動
+              e.preventDefault();
+              const delta = e.deltaY * -0.005; // 靈敏度
+              setZoom(prev => {
+                const newZoom = prev + delta;
+                // 限制縮放範圍 (-15 到 28)
+                return Math.min(Math.max(newZoom, -15), 28);
+              });
+            };
+
+            const container = containerRef.current;
+            if (container) {
+              container.addEventListener('wheel', handleWheel, { passive: false });
+            }
+            return () => {
+              if (container) {
+                container.removeEventListener('wheel', handleWheel);
+              }
+            };
+          }, []);
+
+          const handleSliderChange = (e) => {
+            setZoom(parseFloat(e.target.value));
+          };
+
+          const currentBg = getBackgroundColor(zoom);
+          const currentUnit = getUnitLabel(zoom);
+
+          // 根據背景深淺決定文字顏色
+          const isDarkBg = zoom > 6 || zoom < -8;
+          const textColor = isDarkBg ? "text-white" : "text-slate-800";
+
+          return (
+            <div ref={containerRef} className={`w-full h-screen overflow-hidden transition-colors duration-1000 ${currentBg} flex flex-col relative select-none font-sans`}>
+              
+              {/* --- 抬頭顯示器 (HUD) --- */}
+              <div className={`absolute top-0 left-0 w-full p-4 z-20 flex justify-between items-start pointer-events-none`}>
+                <div className="pointer-events-auto">
+                     <h1 className={`text-3xl font-bold ${textColor} drop-shadow-md flex items-center gap-2`}>
+                        <IconSearch />
+                        生物尺度探索
+                     </h1>
+                     <p className={`text-lg opacity-80 ${textColor}`}>
+                        目前尺度: {formatPower(zoom)}
+                     </p>
+                     <div className={`inline-block px-3 py-1 rounded-full text-sm font-bold mt-2 ${isDarkBg ? 'bg-white/20 text-white' : 'bg-black/10 text-black'}`}>
+                        {currentUnit}
+                     </div>
+                </div>
+                
+                <div className="pointer-events-auto bg-white/90 backdrop-blur rounded-xl p-4 shadow-xl max-w-xs transition-opacity duration-300">
+                     <p className="text-sm text-slate-600 mb-2">💡 <b>操作說明</b></p>
+                     <ul className="text-xs text-slate-500 list-disc pl-4 space-y-1">
+                        <li>滾動滑鼠滾輪或拖動下方滑桿來縮放。</li>
+                        <li>點擊畫面中的物體查看詳細介紹。</li>
+                        <li>範圍：從原子核到可觀測宇宙！</li>
+                     </ul>
+                </div>
+              </div>
+
+              {/* --- 主要視窗 --- */}
+              <div className="flex-1 relative flex items-center justify-center perspective-[1000px]">
+                {/* 渲染物件 */}
+                {SCALE_ITEMS.map((item, index) => {
+                    // 計算尺度差異
+                    const diff = item.power - zoom;
+                    
+                    // 可見度閾值：只渲染在合理範圍內的物件
+                    if (diff > 4 || diff < -4) return null;
+
+                    // 視覺比例計算
+                    const baseSize = 250; 
+                    const visualScale = Math.pow(2.5, diff); 
+                    const pixelSize = baseSize * visualScale;
+
+                    let opacity = 1;
+
+                    // 變小淡出 (diff < -1.5)
+                    if (diff < -1.5) opacity = Math.max(0, 1 + (diff + 1.5)); 
+                    
+                    // **變大淡出優化** (防止擋住視線)
+                    if (diff > 0.8) opacity = Math.max(0, 1 - (diff - 0.8) / 1.0); 
+
+                    // 不渲染看不見的物件
+                    if (opacity <= 0.01) return null;
+
+                    // Z-Index 分層
+                    let zIndex = Math.round(100 - Math.abs(diff) * 10);
+
+                    // 指標事件：避免背景鬼影擋住點擊
+                    const pointerEvents = opacity < 0.5 ? 'pointer-events-none' : 'pointer-events-auto';
+
+                    // 偏移計算：大的物件稍微置中，小的物件隨機偏移
+                    const offsetMultiplier = (diff > 1) ? 5 : 20; 
+
+                    return (
+                        <div 
+                            key={item.name}
+                            className={`absolute transform transition-transform duration-75 cursor-pointer flex flex-col items-center justify-center hover:scale-110 active:scale-95 group ${pointerEvents}`}
+                            style={{
+                                width: `${pixelSize}px`,
+                                height: `${pixelSize}px`,
+                                opacity: opacity,
+                                zIndex: zIndex,
+                                transform: `translate(${Math.sin(index) * offsetMultiplier}%, ${Math.cos(index) * offsetMultiplier}%)` 
+                            }}
+                            onClick={() => setSelectedItem(item)}
+                        >
+                            <div className="relative w-full h-full flex items-center justify-center drop-shadow-2xl">
+                                 {/* 渲染圖示 */}
+                                 {typeof item.icon === 'string' ? (
+                                     <span className="flex items-center justify-center w-full h-full leading-none" style={{fontSize: `${pixelSize * 0.7}px`}}>
+                                         {item.icon}
+                                     </span>
+                                 ) : (
+                                     <div className="w-[80%] h-[80%]">
+                                        {item.icon}
+                                     </div>
+                                 )}
+                            </div>
+                            
+                            {/* 標籤 (只在適當大小時顯示) */}
+                            {opacity > 0.4 && (
+                                <div className={`mt-2 px-3 py-1 rounded-full bg-white/80 backdrop-blur-sm shadow-sm text-center transition-all ${Math.abs(diff) < 0.5 ? 'scale-110 font-bold border-2 border-blue-400' : 'scale-90 opacity-80'}`}>
+                                    <span className="text-slate-800 whitespace-nowrap text-sm sm:text-base">{item.name}</span>
+                                    <div className="text-[10px] text-slate-500 font-mono">10<sup>{item.power}</sup> m</div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+
+                {/* 中心十字準星 (裝飾用) */}
+                <div className={`absolute w-8 h-8 border border-dashed rounded-full pointer-events-none opacity-30 ${isDarkBg ? 'border-white' : 'border-black'}`}></div>
+              </div>
+
+              {/* --- 底部控制列 --- */}
+              <div className="h-24 bg-white/10 backdrop-blur-md border-t border-white/20 flex flex-col items-center justify-center p-4 relative z-30">
+                <div className="flex items-center gap-4 w-full max-w-2xl">
+                    <IconZoomOut className={isDarkBg ? "text-white" : "text-slate-700"} />
+                    <input 
+                        type="range" 
+                        min="-15" 
+                        max="28" 
+                        step="0.1" 
+                        value={zoom}
+                        onChange={handleSliderChange}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-500 hover:accent-blue-400 transition-all"
+                    />
+                    <IconZoomIn className={isDarkBg ? "text-white" : "text-slate-700"} />
+                </div>
+                <div className={`flex justify-between w-full max-w-2xl text-[10px] uppercase font-bold mt-1 ${isDarkBg ? 'text-white/50' : 'text-black/40'}`}>
+                    <span>原子</span>
+                    <span>細胞</span>
+                    <span>人類</span>
+                    <span>地球</span>
+                    <span>太陽系</span>
+                    <span>銀河</span>
+                    <span>宇宙</span>
+                </div>
+              </div>
+
+              {/* --- 詳細資訊卡片 --- */}
+              {selectedItem && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedItem(null)}>
+                    <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full relative animate-bounce-in" onClick={e => e.stopPropagation()}>
+                        <button 
+                            onClick={() => setSelectedItem(null)}
+                            className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+                        >
+                            <IconX className="text-gray-500" />
+                        </button>
+                        
+                        <div className="flex flex-col items-center">
+                            <div className="w-32 h-32 flex items-center justify-center text-6xl mb-4 bg-blue-50 rounded-full border-4 border-blue-100 overflow-hidden relative">
+                                <div className="absolute inset-0 bg-slate-100 z-0"></div>
+                                <div className="z-10 w-24 h-24 flex items-center justify-center">
+                                    {typeof selectedItem.icon === 'string' ? selectedItem.icon : (
+                                        <div className="w-full h-full">{selectedItem.icon}</div>
+                                    )}
+                                </div>
+                            </div>
+                            <h2 className="text-2xl font-bold text-slate-800 mb-1">{selectedItem.name}</h2>
+                            <div className="text-blue-500 font-mono font-bold bg-blue-50 px-3 py-1 rounded-full text-sm mb-4">
+                                大小約 10<sup>{selectedItem.power}</sup> m
+                            </div>
+                            <p className="text-slate-600 text-center leading-relaxed">
+                                {selectedItem.description}
+                            </p>
+                            
+                            <button 
+                                onClick={() => setSelectedItem(null)}
+                                className="mt-6 w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-bold transition-colors"
+                            >
+                                知道了！
+                            </button>
+                        </div>
+                    </div>
+                </div>
+              )}
+            </div>
+          );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

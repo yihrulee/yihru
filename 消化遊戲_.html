@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>生物消化大作戰</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700;900&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            touch-action: none; /* Prevent zoom/scroll on mobile */
+            background-color: #fdf6e3;
+        }
+
+        #game-container {
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .btn-press {
+            transform: scale(0.95);
+            filter: brightness(0.9);
+        }
+        
+        /* Custom Animations */
+        @keyframes floatUp {
+            0% { opacity: 1; transform: translateY(0); }
+            100% { opacity: 0; transform: translateY(-50px); }
+        }
+
+        .floating-text {
+            position: absolute;
+            animation: floatUp 1s ease-out forwards;
+            font-weight: bold;
+            pointer-events: none;
+            text-shadow: 2px 2px 0px white;
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center bg-orange-50 overflow-hidden">
+
+    <!-- Header / Info -->
+    <div class="absolute top-4 w-full text-center z-10 pointer-events-none px-4">
+        <h1 class="text-3xl md:text-4xl font-bold text-amber-800 drop-shadow-sm">為什麼要消化？</h1>
+        <p class="text-amber-700 text-sm md:text-base mt-1 opacity-90 hidden md:block">
+            大分子養分無法通過細胞膜，必須透過酵素分解成小分子。
+        </p>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container" class="relative w-full max-w-4xl aspect-[4/3] md:aspect-[16/9] bg-white rounded-xl border-4 border-amber-200">
+        
+        <!-- Score & Time HUD -->
+        <div class="absolute top-24 md:top-20 left-4 right-4 flex justify-between px-4 z-10 pointer-events-none">
+            <div class="bg-white/80 backdrop-blur rounded-lg px-4 py-2 border-l-4 border-blue-400 shadow-sm">
+                <p class="text-xs text-gray-500">時間</p>
+                <p id="timer-display" class="text-2xl font-bold text-gray-700">60</p>
+            </div>
+            
+            <div class="flex flex-col items-center" id="combo-container" style="opacity: 0;">
+                <span class="text-3xl font-black text-orange-500 italic drop-shadow-md" id="combo-count">5</span>
+                <span class="text-xs font-bold text-orange-400 tracking-widest">COMBO!</span>
+            </div>
+
+            <div class="bg-white/80 backdrop-blur rounded-lg px-4 py-2 border-r-4 border-yellow-400 shadow-sm text-right">
+                <p class="text-xs text-gray-500">分數</p>
+                <p id="score-display" class="text-2xl font-bold text-gray-700">0</p>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <canvas id="gameCanvas"></canvas>
+
+        <!-- Start Screen Overlay -->
+        <div id="start-screen" class="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md w-[90%] border-4 border-amber-300">
+                <h2 class="text-3xl font-bold text-amber-600 mb-4">生物消化大作戰</h2>
+                <div class="space-y-4 text-left text-gray-600 mb-6 bg-amber-50 p-4 rounded-lg text-sm">
+                    <p><i class="fas fa-bread-slice text-blue-400 w-6"></i> <strong>澱粉</strong> ⮕ 用 <span class="text-blue-600 font-bold">澱粉酶</span> (Q)</p>
+                    <p><i class="fas fa-drumstick-bite text-red-400 w-6"></i> <strong>蛋白質</strong> ⮕ 用 <span class="text-red-600 font-bold">蛋白酶</span> (W)</p>
+                    <p><i class="fas fa-cheese text-yellow-400 w-6"></i> <strong>脂肪</strong> ⮕ 用 <span class="text-yellow-600 font-bold">脂肪酶</span> (E)</p>
+                </div>
+                <button id="start-btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-6 rounded-xl transition transform hover:scale-105 shadow-lg border-b-4 border-amber-700 active:border-b-0 active:translate-y-1">
+                    開始遊戲
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Over Overlay -->
+        <div id="game-over-screen" class="hidden absolute inset-0 bg-black/70 flex flex-col items-center justify-center z-50 backdrop-blur-sm">
+            <div class="bg-white p-8 rounded-2xl shadow-2xl text-center max-w-md w-[90%] border-4 border-red-300">
+                <h2 class="text-4xl font-bold text-gray-800 mb-2">時間到！</h2>
+                <p class="text-gray-500 mb-6">消化作用結束</p>
+                
+                <div class="text-5xl font-black text-amber-500 mb-2 drop-shadow-sm" id="final-score">0</div>
+                <p class="text-sm text-gray-400 mb-8" id="final-rank">消化見習生</p>
+
+                <button id="restart-btn" class="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-xl transition transform hover:scale-105 shadow-lg border-b-4 border-blue-700 active:border-b-0 active:translate-y-1">
+                    再玩一次
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Controls (Bottom) -->
+    <div class="w-full max-w-4xl mt-4 grid grid-cols-3 gap-2 md:gap-4 px-2 select-none">
+        
+        <button id="btn-amylase" class="control-btn group relative bg-blue-100 hover:bg-blue-200 border-b-4 border-blue-400 active:border-b-0 active:translate-y-1 rounded-xl p-3 md:p-4 flex flex-col items-center transition-all h-24 md:h-32 justify-center">
+            <div class="absolute top-1 right-2 text-xs font-bold text-blue-300 hidden md:block">Q</div>
+            <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition">✂️</div>
+            <span class="font-bold text-blue-800 text-sm md:text-lg">澱粉酶</span>
+            <span class="text-[10px] md:text-xs text-blue-600">分解澱粉</span>
+        </button>
+
+        <button id="btn-protease" class="control-btn group relative bg-red-100 hover:bg-red-200 border-b-4 border-red-400 active:border-b-0 active:translate-y-1 rounded-xl p-3 md:p-4 flex flex-col items-center transition-all h-24 md:h-32 justify-center">
+            <div class="absolute top-1 right-2 text-xs font-bold text-red-300 hidden md:block">W</div>
+            <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition">🔨</div>
+            <span class="font-bold text-red-800 text-sm md:text-lg">蛋白酶</span>
+            <span class="text-[10px] md:text-xs text-red-600">分解蛋白質</span>
+        </button>
+
+        <button id="btn-lipase" class="control-btn group relative bg-yellow-100 hover:bg-yellow-200 border-b-4 border-yellow-400 active:border-b-0 active:translate-y-1 rounded-xl p-3 md:p-4 flex flex-col items-center transition-all h-24 md:h-32 justify-center">
+            <div class="absolute top-1 right-2 text-xs font-bold text-yellow-500 hidden md:block">E</div>
+            <div class="text-3xl md:text-4xl mb-1 group-hover:scale-110 transition">💧</div>
+            <span class="font-bold text-yellow-800 text-sm md:text-lg">脂肪酶</span>
+            <span class="text-[10px] md:text-xs text-yellow-700">分解脂肪</span>
+        </button>
+    </div>
+
+    <script>
+        // --- Game Constants & Setup ---
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const gameContainer = document.getElementById('game-container');
+        
+        // Logical resolution (independent of screen size)
+        const GAME_WIDTH = 800;
+        const GAME_HEIGHT = 600;
+
+        let scaleRatio = 1;
+
+        // Colors
+        const COLORS = {
+            STARCH: { main: '#60A5FA', light: '#93C5FD', dark: '#2563EB', name: '澱粉' }, // Blue
+            PROTEIN: { main: '#F87171', light: '#FCA5A5', dark: '#DC2626', name: '蛋白質' }, // Red
+            FAT: { main: '#FACC15', light: '#FEF08A', dark: '#CA8A04', name: '脂肪' } // Yellow
+        };
+
+        const ENZYME_TYPES = {
+            AMYLASE: 0,
+            PROTEASE: 1,
+            LIPASE: 2
+        };
+
+        // Game State
+        let state = {
+            isRunning: false,
+            score: 0,
+            time: 60,
+            combo: 0,
+            nutrients: [],
+            particles: [],
+            lastSpawn: 0,
+            spawnRate: 1500, // ms
+            difficultyMultiplier: 1.0,
+            gameLoopId: null
+        };
+
+        // Audio Context (Simple synthesized sounds)
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContext();
+
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(440 + (state.combo * 20), audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880 + (state.combo * 20), audioCtx.currentTime + 0.1);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.1);
+            } else if (type === 'fail') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gainNode.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
+        // --- Classes ---
+
+        class Nutrient {
+            constructor() {
+                this.type = Math.floor(Math.random() * 3); // 0: Starch, 1: Protein, 2: Fat
+                this.x = Math.random() * (GAME_WIDTH - 100) + 50;
+                this.y = -60;
+                this.radius = 35;
+                this.speed = 1.5 + (Math.random() * 0.5) + (state.difficultyMultiplier * 0.5);
+                this.markedForDeletion = false;
+                this.rotation = Math.random() * Math.PI;
+                this.rotSpeed = (Math.random() - 0.5) * 0.02;
+            }
+
+            update() {
+                this.y += this.speed;
+                this.rotation += this.rotSpeed;
+                // If hits bottom without digestion
+                if (this.y > GAME_HEIGHT - 100) {
+                    this.markedForDeletion = true;
+                    handleMiss(this.x, this.y);
+                }
+            }
+
+            draw(ctx) {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+
+                let c;
+                let labelText = "";
+                if (this.type === ENZYME_TYPES.AMYLASE) {
+                    c = COLORS.STARCH;
+                    labelText = "澱粉";
+                }
+                else if (this.type === ENZYME_TYPES.PROTEASE) {
+                    c = COLORS.PROTEIN;
+                    labelText = "蛋白質";
+                }
+                else {
+                    c = COLORS.FAT;
+                    labelText = "脂肪";
+                }
+
+                // Draw shape based on type
+                ctx.fillStyle = c.main;
+                ctx.strokeStyle = c.dark;
+                ctx.lineWidth = 3;
+
+                if (this.type === ENZYME_TYPES.AMYLASE) {
+                    // Chain of hexagons (Starch)
+                    ctx.beginPath();
+                    for(let i=-1; i<=1; i++) {
+                        ctx.arc(i*15, (i%2)*5, 12, 0, Math.PI*2);
+                    }
+                    ctx.fill();
+                    ctx.stroke();
+
+                } else if (this.type === ENZYME_TYPES.PROTEASE) {
+                    // Folded blob (Protein)
+                    ctx.beginPath();
+                    ctx.moveTo(-15, -15);
+                    ctx.quadraticCurveTo(0, -25, 15, -15);
+                    ctx.quadraticCurveTo(25, 0, 15, 15);
+                    ctx.quadraticCurveTo(0, 25, -15, 15);
+                    ctx.quadraticCurveTo(-25, 0, -15, -15);
+                    ctx.fill();
+                    ctx.stroke();
+
+                } else {
+                    // Big round droplet (Fat)
+                    ctx.beginPath();
+                    ctx.arc(0, 0, 25, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+                    // Shine
+                    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+                    ctx.beginPath();
+                    ctx.arc(-8, -8, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                // --- Improved Text Drawing ---
+                // Rotate back so text is always straight or keep rotated? 
+                // To make it readable, let's rotate back to 0 relative to the world, 
+                // OR just draw it rotated but clearly. 
+                // Actually, rotating text with the object is fun, but readable is better.
+                // Let's keep it rotated with object for "physicality" but add outline.
+                
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                // Increased font size and font weight
+                ctx.font = '900 18px "Noto Sans TC", sans-serif'; 
+                
+                // Stroke (Outline)
+                ctx.lineWidth = 4;
+                ctx.strokeStyle = 'rgba(0,0,0,0.6)'; // Dark outline
+                ctx.strokeText(labelText, 0, 0);
+
+                // Fill (Text Color)
+                ctx.fillStyle = '#ffffff'; // Bright white
+                ctx.fillText(labelText, 0, 0);
+
+                ctx.restore();
+            }
+        }
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x + (Math.random() - 0.5) * 40;
+                this.y = y + (Math.random() - 0.5) * 40;
+                this.type = type;
+                this.radius = 6;
+                this.markedForDeletion = false;
+                
+                // Target destination based on type (The channels at bottom)
+                // Left: Glucose (Starch product)
+                // Middle: Amino Acid (Protein product)
+                // Right: Fatty Acid (Fat product - direct diffusion)
+                let targetX;
+                if (type === ENZYME_TYPES.AMYLASE) targetX = GAME_WIDTH * 0.2;
+                else if (type === ENZYME_TYPES.PROTEASE) targetX = GAME_WIDTH * 0.5;
+                else targetX = GAME_WIDTH * 0.8;
+
+                this.vx = (targetX - this.x) * 0.02 + (Math.random()-0.5);
+                this.vy = 4 + Math.random() * 2;
+                this.friction = 0.98;
+            }
+
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                // Physics tweaks
+                if (this.y > GAME_HEIGHT - 60) {
+                    // Check if aligned with channel
+                    // Simple logic: just fade out when passing bottom "membrane"
+                    this.markedForDeletion = true;
+                }
+            }
+
+            draw(ctx) {
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                
+                if (this.type === ENZYME_TYPES.AMYLASE) {
+                    ctx.fillStyle = COLORS.STARCH.light; // Glucose
+                } else if (this.type === ENZYME_TYPES.PROTEASE) {
+                    ctx.fillStyle = COLORS.PROTEIN.light; // Amino Acid
+                } else {
+                    ctx.fillStyle = COLORS.FAT.light; // Fatty Acid
+                }
+                ctx.fill();
+                
+                // For Fatty Acids, make them look "ghostly" passing through membrane
+                if (this.type === ENZYME_TYPES.LIPASE && this.y > GAME_HEIGHT - 120) {
+                    ctx.globalAlpha = 0.5;
+                }
+                ctx.globalAlpha = 1;
+            }
+        }
+
+        // --- Core Functions ---
+
+        function resize() {
+            const container = document.getElementById('game-container');
+            const rect = container.getBoundingClientRect();
+            canvas.width = GAME_WIDTH;
+            canvas.height = GAME_HEIGHT;
+        }
+        window.addEventListener('resize', resize);
+        resize();
+
+        function spawnNutrient() {
+            state.nutrients.push(new Nutrient());
+        }
+
+        function spawnParticles(nutrient) {
+            const count = 5 + Math.floor(Math.random() * 3);
+            for(let i=0; i<count; i++) {
+                state.particles.push(new Particle(nutrient.x, nutrient.y, nutrient.type));
+            }
+        }
+
+        function createFloatingText(text, x, y, color) {
+            // Draw text in Canvas
+            state.particles.push({
+                isText: true,
+                text: text,
+                x: x,
+                y: y,
+                life: 1.0,
+                color: color
+            });
+        }
+
+        function handleInput(inputType) {
+            if (!state.isRunning) return;
+
+            // Find lowest nutrient that is active
+            // Sort by Y desc
+            const targets = state.nutrients
+                .filter(n => !n.markedForDeletion && n.y < GAME_HEIGHT - 100)
+                .sort((a, b) => b.y - a.y);
+
+            if (targets.length === 0) return;
+
+            // Target the one closest to bottom (most urgent)
+            const target = targets[0];
+
+            if (target.type === inputType) {
+                // Success
+                target.markedForDeletion = true;
+                spawnParticles(target);
+                
+                state.combo++;
+                const baseScore = 100;
+                const bonus = (state.combo > 1) ? (state.combo * 10) : 0;
+                const total = baseScore + bonus;
+                state.score += total;
+                
+                playSound('success');
+                
+                // Visual Text
+                let msg = `+${total}`;
+                if (state.combo > 1) msg += ` Combo!`;
+                createFloatingText(msg, target.x, target.y, '#22c55e');
+
+            } else {
+                // Miss
+                state.combo = 0;
+                playSound('fail');
+                createFloatingText("錯了!", target.x, target.y, '#ef4444');
+                // Shake effect (css)
+                gameContainer.classList.add('animate-pulse');
+                setTimeout(() => gameContainer.classList.remove('animate-pulse'), 200);
+            }
+
+            updateUI();
+        }
+
+        function handleMiss(x, y) {
+            state.combo = 0;
+            updateUI();
+            createFloatingText("漏掉了...", x, y - 20, '#9ca3af');
+        }
+
+        function updateUI() {
+            document.getElementById('score-display').innerText = state.score;
+            document.getElementById('timer-display').innerText = state.time;
+            
+            const comboEl = document.getElementById('combo-container');
+            if (state.combo > 1) {
+                comboEl.style.opacity = 1;
+                document.getElementById('combo-count').innerText = state.combo;
+                comboEl.classList.add('scale-125');
+                setTimeout(() => comboEl.classList.remove('scale-125'), 100);
+            } else {
+                comboEl.style.opacity = 0;
+            }
+        }
+
+        function drawBackground(ctx) {
+            // 1. Lumen (Top area) - Light orange
+            ctx.fillStyle = '#fff7ed';
+            ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 2. Membrane Area (Bottom)
+            const memY = GAME_HEIGHT - 100;
+            
+            // Membrane visual
+            ctx.fillStyle = '#fed7aa'; // membrane color
+            ctx.fillRect(0, memY, GAME_WIDTH, 20); // Top layer of membrane
+
+            // Channels
+            const channelY = memY + 10;
+            const width = GAME_WIDTH;
+
+            // Helper to draw channel
+            function drawChannel(x, color, label, subLabel) {
+                ctx.fillStyle = '#e2e8f0'; // Channel structure color
+                ctx.fillRect(x - 40, memY - 10, 80, 40);
+                
+                // The hole
+                ctx.fillStyle = color;
+                ctx.beginPath();
+                ctx.ellipse(x, memY + 10, 20, 30, 0, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Label
+                ctx.fillStyle = '#475569';
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(label, x, GAME_HEIGHT - 50);
+                ctx.font = '12px Arial';
+                ctx.fillText(subLabel, x, GAME_HEIGHT - 30);
+            }
+
+            // Glucose Channel (Left) - for Starch
+            drawChannel(width * 0.2, '#dbeafe', '葡萄糖', '專用通道');
+
+            // Amino Acid Channel (Center) - for Protein
+            drawChannel(width * 0.5, '#fee2e2', '胺基酸', '專用通道');
+
+            // Lipid Diffusion (Right) - for Fat
+            // Special visual for direct diffusion: No solid channel, just a dashed zone
+            ctx.save();
+            ctx.strokeStyle = '#fef08a';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([10, 10]);
+            ctx.strokeRect(width * 0.8 - 50, memY, 100, 20);
+            ctx.restore();
+            
+            ctx.fillStyle = '#b45309';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('脂肪酸', width * 0.8, GAME_HEIGHT - 50);
+            ctx.font = '12px Arial';
+            ctx.fillText('直接通過細胞膜', width * 0.8, GAME_HEIGHT - 30);
+            
+            // Cell Interior (Very bottom)
+            ctx.fillStyle = '#f0f9ff';
+            ctx.fillRect(0, GAME_HEIGHT - 10, GAME_WIDTH, 10);
+        }
+
+        function gameLoop(timestamp) {
+            if (!state.isRunning) return;
+
+            ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+            // 1. Update Logic
+            if (timestamp - state.lastSpawn > state.spawnRate) {
+                spawnNutrient();
+                state.lastSpawn = timestamp;
+                // Increase difficulty slightly over time
+                if (state.spawnRate > 600) state.spawnRate -= 20;
+                state.difficultyMultiplier += 0.05;
+            }
+
+            // Update Nutrients
+            state.nutrients.forEach(n => n.update());
+            state.nutrients = state.nutrients.filter(n => !n.markedForDeletion);
+
+            // Update Particles
+            state.particles.forEach(p => {
+                if (p.isText) {
+                    p.y -= 1;
+                    p.life -= 0.02;
+                } else {
+                    p.update();
+                }
+            });
+            state.particles = state.particles.filter(p => p.isText ? p.life > 0 : !p.markedForDeletion);
+
+            // 2. Draw
+            drawBackground(ctx);
+
+            // Draw Particles
+            state.particles.forEach(p => {
+                if (p.isText) {
+                    ctx.save();
+                    ctx.globalAlpha = p.life;
+                    ctx.fillStyle = p.color;
+                    ctx.font = 'bold 30px Arial';
+                    ctx.textAlign = 'center';
+                    // Text stroke for floating text too
+                    ctx.strokeStyle = 'white';
+                    ctx.lineWidth = 3;
+                    ctx.strokeText(p.text, p.x, p.y);
+                    ctx.fillText(p.text, p.x, p.y);
+                    ctx.restore();
+                } else {
+                    p.draw(ctx);
+                }
+            });
+
+            // Draw Nutrients
+            state.nutrients.forEach(n => n.draw(ctx));
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // --- Controls & Events ---
+
+        function startGame() {
+            state = {
+                isRunning: true,
+                score: 0,
+                time: 60,
+                combo: 0,
+                nutrients: [],
+                particles: [],
+                lastSpawn: 0,
+                spawnRate: 1500,
+                difficultyMultiplier: 1.0,
+                gameLoopId: null
+            };
+            
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('game-over-screen').classList.add('hidden');
+            updateUI();
+            
+            // Start Timer
+            const timerInterval = setInterval(() => {
+                if (!state.isRunning) {
+                    clearInterval(timerInterval);
+                    return;
+                }
+                state.time--;
+                updateUI();
+                if (state.time <= 0) {
+                    endGame();
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function endGame() {
+            state.isRunning = false;
+            document.getElementById('final-score').innerText = state.score;
+            
+            // Rank Logic
+            let rank = "消化見習生";
+            if (state.score > 5000) rank = "酵素操作員";
+            if (state.score > 10000) rank = "消化大師";
+            if (state.score > 15000) rank = "傳說中的細胞核";
+            document.getElementById('final-rank').innerText = rank;
+
+            document.getElementById('game-over-screen').classList.remove('hidden');
+        }
+
+        // Input Bindings
+        document.getElementById('start-btn').addEventListener('click', startGame);
+        document.getElementById('restart-btn').addEventListener('click', startGame);
+
+        // Buttons
+        const btnAmylase = document.getElementById('btn-amylase');
+        const btnProtease = document.getElementById('btn-protease');
+        const btnLipase = document.getElementById('btn-lipase');
+
+        function triggerButton(btn, type) {
+            btn.classList.add('btn-press', 'bg-opacity-80');
+            setTimeout(() => btn.classList.remove('btn-press', 'bg-opacity-80'), 100);
+            handleInput(type);
+        }
+
+        btnAmylase.addEventListener('click', () => triggerButton(btnAmylase, ENZYME_TYPES.AMYLASE)); // Starch
+        btnAmylase.addEventListener('touchstart', (e) => { e.preventDefault(); triggerButton(btnAmylase, ENZYME_TYPES.AMYLASE); });
+
+        btnProtease.addEventListener('click', () => triggerButton(btnProtease, ENZYME_TYPES.PROTEASE)); // Protein
+        btnProtease.addEventListener('touchstart', (e) => { e.preventDefault(); triggerButton(btnProtease, ENZYME_TYPES.PROTEASE); });
+
+        btnLipase.addEventListener('click', () => triggerButton(btnLipase, ENZYME_TYPES.LIPASE)); // Fat
+        btnLipase.addEventListener('touchstart', (e) => { e.preventDefault(); triggerButton(btnLipase, ENZYME_TYPES.LIPASE); });
+
+        // Keyboard
+        window.addEventListener('keydown', (e) => {
+            if (!state.isRunning) return;
+            const k = e.key.toLowerCase();
+            if (k === 'q' || k === '1') triggerButton(btnAmylase, ENZYME_TYPES.AMYLASE);
+            if (k === 'w' || k === '2') triggerButton(btnProtease, ENZYME_TYPES.PROTEASE);
+            if (k === 'e' || k === '3') triggerButton(btnLipase, ENZYME_TYPES.LIPASE);
+        });
+
+    </script>
+</body>
+</html>
