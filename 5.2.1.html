@@ -1,0 +1,328 @@
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>原形食物選擇遊戲</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e1f5fe 100%);
+            min-height: 100vh;
+        }
+        
+        .food-item {
+            transition: all 0.3s ease;
+        }
+        
+        .food-item:hover {
+            transform: scale(1.05);
+        }
+        
+        .food-item.selected {
+            border: 3px solid #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .food-item.wrong {
+            border: 3px solid #F44336;
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+        
+        .food-item.correct {
+            border: 3px solid #4CAF50;
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+        
+        .timer-bar {
+            transition: width 0.1s linear;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <div class="text-center mb-6">
+            <h1 class="text-3xl md:text-4xl font-bold text-indigo-800 mb-2">原形食物選擇遊戲</h1>
+            <p class="text-lg text-gray-700">在10秒內選出所有的原形食物，每選對一個得1分，選錯扣1分！</p>
+        </div>
+        
+        <!-- 遊戲狀態區 -->
+        <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
+            <div class="flex flex-wrap justify-between items-center">
+                <div class="w-full md:w-auto mb-4 md:mb-0">
+                    <div class="text-xl font-bold text-indigo-700">分數: <span id="score">0</span></div>
+                </div>
+                
+                <div class="w-full md:w-1/2 mb-4 md:mb-0">
+                    <div class="relative h-6 bg-gray-200 rounded-full overflow-hidden">
+                        <div id="timer-bar" class="timer-bar h-full bg-indigo-600 rounded-full" style="width: 100%;"></div>
+                    </div>
+                    <div class="text-center mt-1 text-indigo-700 font-medium">剩餘時間: <span id="timer">10</span> 秒</div>
+                </div>
+                
+                <div class="w-full md:w-auto flex justify-center">
+                    <button id="start-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-6 rounded-full shadow-md transition duration-300 ease-in-out transform hover:scale-105">
+                        開始遊戲
+                    </button>
+                    <button id="end-btn" class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-6 rounded-full shadow-md ml-4 transition duration-300 ease-in-out transform hover:scale-105 hidden">
+                        結束遊戲
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 遊戲區域 -->
+        <div id="game-area" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 mb-8 opacity-50 pointer-events-none">
+            <!-- 食物項目將由 JavaScript 動態生成 -->
+        </div>
+        
+        <!-- 結果顯示區 -->
+        <div id="result-area" class="bg-white rounded-lg shadow-lg p-6 text-center hidden">
+            <h2 class="text-2xl font-bold text-indigo-800 mb-4">遊戲結束！</h2>
+            <p class="text-xl mb-2">你的得分: <span id="final-score" class="font-bold text-2xl text-indigo-700">0</span></p>
+            <p class="text-lg mb-4">正確選擇了 <span id="correct-count" class="font-bold text-green-600">0</span> 個原形食物</p>
+            <p class="text-lg mb-4">錯誤選擇了 <span id="wrong-count" class="font-bold text-red-600">0</span> 個加工食物</p>
+            
+            <div class="mt-6">
+                <button id="play-again-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition duration-300 ease-in-out transform hover:scale-105">
+                    再玩一次
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 食物資料
+        const rawFoods = [
+            "蘋果", "香蕉", "玉米", "小麥", "黃豆", "稻米", "青花菜", "玉米筍", "胡蘿蔔", "馬鈴薯",
+            "洋蔥", "蕃茄", "蒜頭", "菠菜", "蘆筍", "南瓜", "苦瓜", "紅豆", "芋頭", "西瓜",
+            "奇異果", "柚子", "鮭魚", "雞蛋"
+        ];
+        
+        const processedFoods = [
+            "麵粉", "罐裝玉米筍", "豆腐", "豆漿", "麵包", "餅乾", "玉米片", "玉米罐頭", "麵條", "米粉",
+            "果汁", "果醬", "醃菜", "煙燻魚肉", "罐頭鮪魚", "蔬菜湯", "炒菜", "馬鈴薯片", "果乾", "香腸",
+            "雞蛋糕", "起司", "冰淇淋"
+        ];
+        
+        // 遊戲變數
+        let score = 0;
+        let timer = 10;
+        let gameInterval;
+        let selectedFoods = [];
+        let gameActive = false;
+        let correctSelections = [];
+        let wrongSelections = [];
+        
+        // DOM 元素
+        const startBtn = document.getElementById('start-btn');
+        const endBtn = document.getElementById('end-btn');
+        const playAgainBtn = document.getElementById('play-again-btn');
+        const gameArea = document.getElementById('game-area');
+        const resultArea = document.getElementById('result-area');
+        const scoreDisplay = document.getElementById('score');
+        const timerDisplay = document.getElementById('timer');
+        const timerBar = document.getElementById('timer-bar');
+        const finalScoreDisplay = document.getElementById('final-score');
+        const correctCountDisplay = document.getElementById('correct-count');
+        const wrongCountDisplay = document.getElementById('wrong-count');
+        
+        // 初始化遊戲
+        function initGame() {
+            gameArea.innerHTML = '';
+            score = 0;
+            timer = 10;
+            selectedFoods = [];
+            correctSelections = [];
+            wrongSelections = [];
+            scoreDisplay.textContent = score;
+            timerDisplay.textContent = timer;
+            timerBar.style.width = '100%';
+            timerBar.classList.remove('bg-red-600');
+            timerBar.classList.add('bg-indigo-600');
+            timerDisplay.classList.remove('text-red-600', 'font-bold', 'pulse');
+            
+            // 混合並隨機排序食物
+            const allFoods = [...rawFoods, ...processedFoods];
+            const shuffledFoods = shuffleArray(allFoods);
+            
+            // 從混合後的食物中選擇30個
+            const selectedFoodsForGame = shuffledFoods.slice(0, 30);
+            
+            // 創建食物元素
+            selectedFoodsForGame.forEach(food => {
+                const foodItem = document.createElement('div');
+                foodItem.className = 'food-item bg-white rounded-lg shadow-md p-4 flex flex-col items-center justify-center cursor-pointer transition-all';
+                foodItem.dataset.name = food;
+                foodItem.dataset.type = rawFoods.includes(food) ? 'raw' : 'processed';
+                
+                // 使用表情符號代表食物
+                const emoji = getFoodEmoji(food);
+                
+                foodItem.innerHTML = `
+                    <div class="text-4xl mb-2">${emoji}</div>
+                    <div class="text-center font-medium">${food}</div>
+                `;
+                
+                foodItem.addEventListener('click', () => selectFood(foodItem));
+                gameArea.appendChild(foodItem);
+            });
+        }
+        
+        // 開始遊戲
+        function startGame() {
+            gameActive = true;
+            gameArea.classList.remove('opacity-50', 'pointer-events-none');
+            startBtn.classList.add('hidden');
+            endBtn.classList.remove('hidden');
+            resultArea.classList.add('hidden');
+            
+            gameInterval = setInterval(() => {
+                timer--;
+                timerDisplay.textContent = timer;
+                timerBar.style.width = `${(timer / 10) * 100}%`;
+                
+                if (timer <= 3) {
+                    timerBar.classList.add('bg-red-600');
+                    timerBar.classList.remove('bg-indigo-600');
+                    timerDisplay.classList.add('text-red-600', 'font-bold', 'pulse');
+                }
+                
+                if (timer <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+        
+        // 結束遊戲
+        function endGame() {
+            gameActive = false;
+            clearInterval(gameInterval);
+            gameArea.classList.add('opacity-50', 'pointer-events-none');
+            startBtn.classList.remove('hidden');
+            endBtn.classList.add('hidden');
+            timerBar.classList.remove('bg-red-600');
+            timerBar.classList.add('bg-indigo-600');
+            timerDisplay.classList.remove('text-red-600', 'font-bold', 'pulse');
+            
+            // 顯示結果
+            resultArea.classList.remove('hidden');
+            finalScoreDisplay.textContent = score;
+            correctCountDisplay.textContent = correctSelections.length;
+            wrongCountDisplay.textContent = wrongSelections.length;
+            
+            // 標記所有食物項目
+            const foodItems = document.querySelectorAll('.food-item');
+            foodItems.forEach(item => {
+                if (item.dataset.type === 'raw') {
+                    item.classList.add('correct');
+                } else {
+                    item.classList.add('wrong');
+                }
+            });
+        }
+        
+        // 選擇食物
+        function selectFood(foodItem) {
+            if (!gameActive) return;
+            
+            const foodName = foodItem.dataset.name;
+            const foodType = foodItem.dataset.type;
+            
+            // 如果已經選擇過，則忽略
+            if (selectedFoods.includes(foodName)) return;
+            
+            selectedFoods.push(foodName);
+            foodItem.classList.add('selected');
+            
+            // 如果是原形食物，加分
+            if (foodType === 'raw') {
+                score++;
+                correctSelections.push(foodName);
+                scoreDisplay.textContent = score;
+                foodItem.classList.add('correct');
+            } else {
+                // 如果是加工食物，扣分
+                score--;
+                wrongSelections.push(foodName);
+                scoreDisplay.textContent = score;
+                foodItem.classList.add('wrong');
+                foodItem.classList.add('shake');
+                
+                // 分數顯示動畫效果
+                scoreDisplay.classList.add('text-red-600');
+                setTimeout(() => {
+                    scoreDisplay.classList.remove('text-red-600');
+                }, 500);
+            }
+        }
+        
+        // 洗牌數組
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+        
+        // 根據食物名稱獲取表情符號
+        function getFoodEmoji(food) {
+            const emojiMap = {
+                "蘋果": "🍎", "香蕉": "🍌", "玉米": "🌽", "小麥": "🌾", "黃豆": "🫘", "稻米": "🍚",
+                "青花菜": "🥦", "玉米筍": "🌽", "胡蘿蔔": "🥕", "馬鈴薯": "🥔", "洋蔥": "🧅",
+                "蕃茄": "🍅", "蒜頭": "🧄", "菠菜": "🥬", "蘆筍": "🥬", "南瓜": "🎃", "苦瓜": "🥒",
+                "紅豆": "🫘", "芋頭": "🥔", "西瓜": "🍉", "奇異果": "🥝", "柚子": "🍊", "鮭魚": "🐟",
+                "雞蛋": "🥚", "麵粉": "🌾", "罐裝玉米筍": "🥫", "豆腐": "🧊", "豆漿": "🥛",
+                "麵包": "🍞", "餅乾": "🍪", "玉米片": "🌽", "玉米罐頭": "🥫", "麵條": "🍜",
+                "米粉": "🍜", "果汁": "🧃", "果醬": "🍯", "醃菜": "🥒", "煙燻魚肉": "🐟",
+                "罐頭鮪魚": "🥫", "蔬菜湯": "🍲", "炒菜": "🍲", "馬鈴薯片": "🍟", "果乾": "🍇",
+                "香腸": "🌭", "雞蛋糕": "🍰", "起司": "🧀", "冰淇淋": "🍦"
+            };
+            
+            return emojiMap[food] || "🍽️";
+        }
+        
+        // 事件監聽器
+        startBtn.addEventListener('click', () => {
+            initGame();
+            startGame();
+        });
+        
+        endBtn.addEventListener('click', endGame);
+        
+        playAgainBtn.addEventListener('click', () => {
+            initGame();
+            startGame();
+        });
+        
+        // 初始化頁面
+        initGame();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9af68b6b43003309',t:'MTc2NTk3NTgxMC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
