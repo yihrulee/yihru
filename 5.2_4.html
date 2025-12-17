@@ -1,0 +1,1227 @@
+
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的健康餐盤 - Bella Cucina</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background-color: #f8f5f2;
+            color: #333;
+        }
+        
+        .plate-circle {
+            border-radius: 50%;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .plate-section {
+            position: absolute;
+            transition: all 0.5s ease;
+        }
+        
+        .btn-primary {
+            background-color: #4a7c59;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            background-color: #3d6649;
+            transform: translateY(-2px);
+        }
+        
+        .food-item {
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        
+        .food-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .food-item.selected {
+            border: 2px solid #4a7c59;
+            background-color: rgba(74, 124, 89, 0.1);
+        }
+        
+        .progress-bar {
+            transition: width 1s ease;
+        }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+        }
+        
+        .plate-label {
+            position: absolute;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #333;
+            text-align: center;
+            width: 100%;
+            bottom: 5px;
+        }
+        
+        .heart-icon {
+            position: relative;
+            display: inline-block;
+            margin-left: 5px;
+        }
+        
+        .tooltip {
+            visibility: hidden;
+            width: 200px;
+            background-color: #555;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 5px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -100px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.8rem;
+        }
+        
+        .heart-icon:hover .tooltip {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .heart-healthy {
+            color: #4a7c59;
+        }
+        
+        .heart-neutral {
+            color: #e09f3e;
+        }
+        
+        .heart-unhealthy {
+            color: #e76f51;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mx-auto px-4 py-8 max-w-5xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-[#4a7c59] mb-2">Bella Cucina</h1>
+            <h2 class="text-2xl font-medium text-[#333]">我的健康餐盤</h2>
+        </header>
+        
+        <!-- 步驟導航 -->
+        <div class="flex justify-between items-center mb-8 px-4 py-2 bg-white rounded-lg shadow-sm">
+            <div id="step-indicator" class="flex items-center justify-between w-full">
+                <div class="step-dot flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-[#4a7c59] text-white flex items-center justify-center">1</div>
+                    <span class="text-sm mt-1">選擇用餐時間</span>
+                </div>
+                <div class="h-0.5 bg-gray-300 flex-grow mx-2"></div>
+                <div class="step-dot flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center">2</div>
+                    <span class="text-sm mt-1">選擇主食</span>
+                </div>
+                <div class="h-0.5 bg-gray-300 flex-grow mx-2"></div>
+                <div class="step-dot flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center">3</div>
+                    <span class="text-sm mt-1">選擇配菜</span>
+                </div>
+                <div class="h-0.5 bg-gray-300 flex-grow mx-2"></div>
+                <div class="step-dot flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center">4</div>
+                    <span class="text-sm mt-1">選擇水果/甜點</span>
+                </div>
+                <div class="h-0.5 bg-gray-300 flex-grow mx-2"></div>
+                <div class="step-dot flex flex-col items-center">
+                    <div class="w-8 h-8 rounded-full bg-gray-300 text-gray-600 flex items-center justify-center">5</div>
+                    <span class="text-sm mt-1">健康評分</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 步驟內容 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <!-- 步驟 1: 選擇用餐時間 -->
+            <div id="step1" class="step active">
+                <h3 class="text-2xl font-bold mb-6 text-center">請選擇用餐時間</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="food-item p-6 rounded-lg bg-[#f8f5f2] text-center cursor-pointer" data-meal="breakfast">
+                        <div class="text-4xl mb-2">🌅</div>
+                        <h4 class="text-xl font-medium">早餐</h4>
+                        <p class="text-gray-600 mt-2">06:00 - 10:00</p>
+                    </div>
+                    <div class="food-item p-6 rounded-lg bg-[#f8f5f2] text-center cursor-pointer" data-meal="lunch">
+                        <div class="text-4xl mb-2">☀️</div>
+                        <h4 class="text-xl font-medium">午餐</h4>
+                        <p class="text-gray-600 mt-2">11:00 - 14:00</p>
+                    </div>
+                    <div class="food-item p-6 rounded-lg bg-[#f8f5f2] text-center cursor-pointer" data-meal="dinner">
+                        <div class="text-4xl mb-2">🌙</div>
+                        <h4 class="text-xl font-medium">晚餐</h4>
+                        <p class="text-gray-600 mt-2">17:00 - 21:00</p>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步驟 2: 選擇主食 -->
+            <div id="step2" class="step">
+                <h3 class="text-2xl font-bold mb-6 text-center">請選擇主食</h3>
+                <p class="text-center text-gray-600 mb-6">健康餐盤原則：飯跟蔬菜一樣多，盡量以全穀雜糧為主</p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="staple" data-value="brown_rice" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">糙米飯</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">全穀類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含膳食纖維，有助於腸道健康</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">全穀類有助於降低心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="staple" data-value="mixed_grain" data-health="9" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">五穀飯</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">全穀類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">多種穀物混合，營養更均衡</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">多種穀物提供不同營養素，有益心血管健康</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="staple" data-value="white_rice" data-health="6" data-heart="5">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">白米飯</h4>
+                            <span class="text-sm bg-[#e09f3e] text-white px-2 py-1 rounded">精製穀類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">易消化，但營養素較少</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-neutral">❤️
+                                <span class="tooltip">精製穀物可能增加心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="staple" data-value="quinoa" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">藜麥</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">全穀類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">高蛋白質，含有豐富的礦物質</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有豐富的鎂和鉀，有助於控制血壓</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="staple" data-value="sweet_potato" data-health="8" data-heart="8">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">地瓜</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">全穀類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含維生素A和膳食纖維</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有抗氧化物質，有助於降低發炎反應</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="staple" data-value="noodles" data-health="5" data-heart="4">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">麵條</h4>
+                            <span class="text-sm bg-[#e09f3e] text-white px-2 py-1 rounded">精製穀類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">方便快捷，但營養價值較低</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-neutral">❤️
+                                <span class="tooltip">精製麵粉製品可能增加心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步驟 3: 選擇配菜 -->
+            <div id="step3" class="step">
+                <h3 class="text-2xl font-bold mb-6 text-center">請選擇配菜</h3>
+                <p class="text-center text-gray-600 mb-6">健康餐盤原則：菜比水果多一點，豆魚蛋肉一掌心</p>
+                
+                <h4 class="text-xl font-medium mb-4">蔬菜 (請選擇2-3種)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="vegetable" data-value="broccoli" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">花椰菜</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">深色蔬菜</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含維生素C和抗氧化物</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有豐富的抗氧化物質，有助於預防動脈硬化</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="vegetable" data-value="spinach" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">菠菜</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">深色蔬菜</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含鐵質和葉酸</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有硝酸鹽，有助於降低血壓</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="vegetable" data-value="carrot" data-health="9" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">胡蘿蔔</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">深色蔬菜</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含β-胡蘿蔔素，有益眼睛健康</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">抗氧化物質有助於預防心血管疾病</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="vegetable" data-value="cabbage" data-health="8" data-heart="8">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">高麗菜</h4>
+                            <span class="text-sm bg-[#9bc1bc] text-white px-2 py-1 rounded">淺色蔬菜</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">含有豐富的維生素K和C</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有抗發炎物質，有助於心血管健康</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="vegetable" data-value="tomato" data-health="9" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">番茄</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">深色蔬菜</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含茄紅素，有抗氧化作用</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">茄紅素有助於降低壞膽固醇，預防心臟病</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="vegetable" data-value="cucumber" data-health="7" data-heart="7">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">小黃瓜</h4>
+                            <span class="text-sm bg-[#9bc1bc] text-white px-2 py-1 rounded">淺色蔬菜</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">水分充足，低熱量</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有鉀，有助於維持健康血壓</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="text-xl font-medium mb-4">蛋白質 (請選擇1種)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="protein" data-value="tofu" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">豆腐</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">豆類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">優質植物蛋白，低脂肪</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">大豆蛋白有助於降低膽固醇，減少心臟病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="protein" data-value="fish" data-health="9" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">鮭魚</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">魚類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含Omega-3脂肪酸</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">Omega-3脂肪酸有助於降低血壓和減少發炎</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="protein" data-value="egg" data-health="8" data-heart="7">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">雞蛋</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">蛋類</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">完整蛋白質，含有多種維生素</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-neutral">❤️
+                                <span class="tooltip">適量食用對心血管無害，但含有膽固醇</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="protein" data-value="chicken" data-health="7" data-heart="7">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">雞胸肉</h4>
+                            <span class="text-sm bg-[#9bc1bc] text-white px-2 py-1 rounded">禽肉</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">低脂高蛋白</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-neutral">❤️
+                                <span class="tooltip">去皮雞胸肉是較健康的肉類選擇</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="protein" data-value="beef" data-health="6" data-heart="4">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">牛肉</h4>
+                            <span class="text-sm bg-[#9bc1bc] text-white px-2 py-1 rounded">畜肉</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含鐵質和B族維生素</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-unhealthy">❤️
+                                <span class="tooltip">紅肉含有飽和脂肪，過量食用增加心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="protein" data-value="nuts" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">堅果</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">堅果種子</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含健康脂肪和抗氧化物</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有不飽和脂肪酸，有助於降低壞膽固醇</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步驟 4: 選擇水果/甜點 -->
+            <div id="step4" class="step">
+                <h3 class="text-2xl font-bold mb-6 text-center">請選擇水果/甜點</h3>
+                <p class="text-center text-gray-600 mb-6">健康餐盤原則：每餐水果拳頭大，選擇當季水果</p>
+                
+                <h4 class="text-xl font-medium mb-4">水果 (請選擇1種)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="fruit" data-value="apple" data-health="9" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">蘋果</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">當季水果</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含膳食纖維和抗氧化物</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有可溶性纖維，有助於降低膽固醇</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="fruit" data-value="banana" data-health="8" data-heart="8">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">香蕉</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">當季水果</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含鉀和維生素B6</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">富含鉀，有助於控制血壓</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="fruit" data-value="orange" data-health="9" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">柳橙</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">當季水果</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含維生素C</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有類黃酮，有助於降低心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="fruit" data-value="kiwi" data-health="10" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">奇異果</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">當季水果</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含維生素C和K</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">有助於降低血壓和血小板凝集</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="fruit" data-value="berries" data-health="10" data-heart="10">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">莓果類</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">當季水果</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含抗氧化物和維生素</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">含有豐富的多酚類物質，有助於預防心血管疾病</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="fruit" data-value="none" data-health="0" data-heart="0">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">不選擇水果</h4>
+                            <span class="text-sm bg-[#e76f51] text-white px-2 py-1 rounded">不建議</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">建議每餐攝取適量水果</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-unhealthy">❤️
+                                <span class="tooltip">缺乏水果攝取會增加心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="text-xl font-medium mb-4">飲品 (請選擇1種)</h4>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="drink" data-value="milk" data-health="10" data-heart="8">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">牛奶</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">乳品</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">富含鈣質和蛋白質</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">低脂牛奶有助於控制血壓，建議選擇低脂或脫脂</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="drink" data-value="yogurt" data-health="9" data-heart="9">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">優格</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">乳品</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">含有益生菌，有助腸道健康</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">益生菌有助於降低膽固醇和血壓</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="drink" data-value="water" data-health="8" data-heart="8">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">白開水</h4>
+                            <span class="text-sm bg-[#4a7c59] text-white px-2 py-1 rounded">健康飲品</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">保持身體水分平衡</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">充足的水分有助於維持血液循環</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="drink" data-value="tea" data-health="7" data-heart="8">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">無糖茶</h4>
+                            <span class="text-sm bg-[#9bc1bc] text-white px-2 py-1 rounded">健康飲品</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">含有抗氧化物</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-healthy">❤️
+                                <span class="tooltip">茶多酚有助於降低心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="drink" data-value="juice" data-health="5" data-heart="4">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">果汁</h4>
+                            <span class="text-sm bg-[#e09f3e] text-white px-2 py-1 rounded">適量飲用</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">含糖量較高，建議適量</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-neutral">❤️
+                                <span class="tooltip">含有較高糖分，可能增加心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="food-item p-4 rounded-lg bg-[#f8f5f2] cursor-pointer" data-type="drink" data-value="soda" data-health="1" data-heart="1">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-lg font-medium">汽水</h4>
+                            <span class="text-sm bg-[#e76f51] text-white px-2 py-1 rounded">不建議</span>
+                        </div>
+                        <p class="text-gray-600 mt-2">含糖量高，營養價值低</p>
+                        <div class="mt-2 text-right">
+                            <span class="heart-icon heart-unhealthy">❤️
+                                <span class="tooltip">高糖飲料增加肥胖和心血管疾病風險</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 步驟 5: 健康評分 -->
+            <div id="step5" class="step">
+                <h3 class="text-2xl font-bold mb-6 text-center">您的健康餐盤評分</h3>
+                
+                <div class="flex flex-col md:flex-row gap-8 items-center">
+                    <!-- 餐盤視覺化 -->
+                    <div class="w-full md:w-1/2">
+                        <div class="plate-circle w-80 h-80 mx-auto bg-white border-4 border-[#4a7c59] p-2 mb-6">
+                            <!-- 餐盤區塊 -->
+                            <div id="plate-staple" class="plate-section bg-[#f8d49f] h-2/5 w-2/5 left-[30%] top-0">
+                                <div class="plate-label">主食</div>
+                            </div>
+                            <div id="plate-vegetable" class="plate-section bg-[#a7e8bd] h-2/5 w-2/5 right-0 top-[30%]">
+                                <div class="plate-label">蔬菜</div>
+                            </div>
+                            <div id="plate-protein" class="plate-section bg-[#ffb5a7] h-2/5 w-2/5 left-0 top-[30%]">
+                                <div class="plate-label">蛋白質</div>
+                            </div>
+                            <div id="plate-fruit" class="plate-section bg-[#fec89a] h-1/5 w-4/5 left-[10%] bottom-0">
+                                <div class="plate-label">水果</div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <h4 class="text-xl font-medium mb-2" id="meal-time-display">用餐時間：早餐</h4>
+                            <p class="text-gray-600" id="meal-composition">
+                                主食：糙米飯<br>
+                                蔬菜：花椰菜、菠菜<br>
+                                蛋白質：豆腐<br>
+                                水果：蘋果<br>
+                                飲品：牛奶
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- 健康評分 -->
+                    <div class="w-full md:w-1/2">
+                        <div class="bg-[#f8f5f2] p-6 rounded-lg">
+                            <h4 class="text-xl font-medium mb-4">健康評分</h4>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>總體評分</span>
+                                    <span id="total-score">85</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#4a7c59] h-2.5 rounded-full progress-bar" style="width: 85%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>主食</span>
+                                    <span id="staple-score">9/10</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#f8d49f] h-2.5 rounded-full progress-bar" style="width: 90%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>蔬菜</span>
+                                    <span id="vegetable-score">10/10</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#a7e8bd] h-2.5 rounded-full progress-bar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>蛋白質</span>
+                                    <span id="protein-score">10/10</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#ffb5a7] h-2.5 rounded-full progress-bar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>水果</span>
+                                    <span id="fruit-score">9/10</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#fec89a] h-2.5 rounded-full progress-bar" style="width: 90%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>飲品</span>
+                                    <span id="drink-score">10/10</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#9bc1bc] h-2.5 rounded-full progress-bar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <div class="flex justify-between mb-1">
+                                    <span>心血管健康指數</span>
+                                    <span id="heart-score">90</span>
+                                </div>
+                                <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                    <div class="bg-[#e76f51] h-2.5 rounded-full progress-bar" style="width: 90%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-6 p-4 bg-white rounded-lg border border-[#4a7c59]">
+                                <h5 class="font-medium mb-2">健康建議</h5>
+                                <p id="health-advice">您的餐盤非常均衡！主食選擇了全穀類，蔬菜選擇了深色蔬菜，蛋白質選擇了優質來源，並且有水果和乳製品。繼續保持這樣的飲食習慣！</p>
+                            </div>
+                            
+                            <div class="mt-4 p-4 bg-white rounded-lg border border-[#e76f51]">
+                                <h5 class="font-medium mb-2">心血管健康建議</h5>
+                                <p id="heart-advice">您的餐盤對心血管健康非常有益！選擇了全穀類、深色蔬菜、優質蛋白質和水果，這些食物富含抗氧化物質和健康脂肪，有助於降低心血管疾病風險。</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-8 text-center">
+                    <button id="restart-btn" class="bg-[#4a7c59] text-white px-6 py-3 rounded-lg font-medium hover:bg-[#3d6649] transition-all">重新開始</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 導航按鈕 -->
+        <div class="flex justify-between">
+            <button id="prev-btn" class="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg font-medium hover:bg-gray-300 transition-all hidden">上一步</button>
+            <button id="next-btn" class="px-6 py-3 bg-[#4a7c59] text-white rounded-lg font-medium hover:bg-[#3d6649] transition-all">下一步</button>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化變數
+            let currentStep = 1;
+            const totalSteps = 5;
+            let selectedMeal = '';
+            let selectedFoods = {
+                staple: null,
+                vegetable: [],
+                protein: null,
+                fruit: null,
+                drink: null
+            };
+            let healthScores = {
+                staple: 0,
+                vegetable: 0,
+                protein: 0,
+                fruit: 0,
+                drink: 0
+            };
+            let heartScores = {
+                staple: 0,
+                vegetable: 0,
+                protein: 0,
+                fruit: 0,
+                drink: 0
+            };
+            
+            // 獲取DOM元素
+            const stepDots = document.querySelectorAll('.step-dot');
+            const steps = document.querySelectorAll('.step');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const restartBtn = document.getElementById('restart-btn');
+            
+            // 更新步驟指示器
+            function updateStepIndicator() {
+                stepDots.forEach((dot, index) => {
+                    const dotCircle = dot.querySelector('div');
+                    if (index + 1 < currentStep) {
+                        dotCircle.classList.remove('bg-gray-300', 'text-gray-600');
+                        dotCircle.classList.add('bg-[#4a7c59]', 'text-white');
+                    } else if (index + 1 === currentStep) {
+                        dotCircle.classList.remove('bg-gray-300', 'text-gray-600');
+                        dotCircle.classList.add('bg-[#4a7c59]', 'text-white');
+                    } else {
+                        dotCircle.classList.remove('bg-[#4a7c59]', 'text-white');
+                        dotCircle.classList.add('bg-gray-300', 'text-gray-600');
+                    }
+                });
+            }
+            
+            // 顯示當前步驟
+            function showStep(step) {
+                steps.forEach((s, index) => {
+                    if (index + 1 === step) {
+                        s.classList.add('active');
+                    } else {
+                        s.classList.remove('active');
+                    }
+                });
+                
+                // 更新按鈕狀態
+                if (step === 1) {
+                    prevBtn.classList.add('hidden');
+                } else {
+                    prevBtn.classList.remove('hidden');
+                }
+                
+                if (step === totalSteps) {
+                    nextBtn.classList.add('hidden');
+                    calculateHealthScore();
+                    updatePlateVisualization();
+                } else {
+                    nextBtn.classList.remove('hidden');
+                }
+                
+                updateStepIndicator();
+            }
+            
+            // 下一步
+            nextBtn.addEventListener('click', function() {
+                // 驗證當前步驟是否已選擇
+                if (!validateStep(currentStep)) {
+                    alert('請完成當前步驟的選擇');
+                    return;
+                }
+                
+                if (currentStep < totalSteps) {
+                    currentStep++;
+                    showStep(currentStep);
+                }
+            });
+            
+            // 上一步
+            prevBtn.addEventListener('click', function() {
+                if (currentStep > 1) {
+                    currentStep--;
+                    showStep(currentStep);
+                }
+            });
+            
+            // 重新開始
+            restartBtn.addEventListener('click', function() {
+                currentStep = 1;
+                selectedMeal = '';
+                selectedFoods = {
+                    staple: null,
+                    vegetable: [],
+                    protein: null,
+                    fruit: null,
+                    drink: null
+                };
+                healthScores = {
+                    staple: 0,
+                    vegetable: 0,
+                    protein: 0,
+                    fruit: 0,
+                    drink: 0
+                };
+                heartScores = {
+                    staple: 0,
+                    vegetable: 0,
+                    protein: 0,
+                    fruit: 0,
+                    drink: 0
+                };
+                
+                // 清除所有選擇
+                document.querySelectorAll('.food-item').forEach(item => {
+                    item.classList.remove('selected');
+                });
+                
+                showStep(currentStep);
+            });
+            
+            // 驗證步驟
+            function validateStep(step) {
+                switch(step) {
+                    case 1:
+                        return selectedMeal !== '';
+                    case 2:
+                        return selectedFoods.staple !== null;
+                    case 3:
+                        return selectedFoods.vegetable.length > 0 && selectedFoods.protein !== null;
+                    case 4:
+                        return selectedFoods.fruit !== null && selectedFoods.drink !== null;
+                    default:
+                        return true;
+                }
+            }
+            
+            // 選擇用餐時間
+            document.querySelectorAll('[data-meal]').forEach(item => {
+                item.addEventListener('click', function() {
+                    document.querySelectorAll('[data-meal]').forEach(i => i.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedMeal = this.getAttribute('data-meal');
+                });
+            });
+            
+            // 選擇食物
+            document.querySelectorAll('[data-type]').forEach(item => {
+                item.addEventListener('click', function() {
+                    const type = this.getAttribute('data-type');
+                    const value = this.getAttribute('data-value');
+                    const healthScore = parseInt(this.getAttribute('data-health'));
+                    const heartScore = parseInt(this.getAttribute('data-heart'));
+                    
+                    // 處理不同類型的選擇邏輯
+                    if (type === 'vegetable') {
+                        // 蔬菜可以多選，最多3種
+                        if (this.classList.contains('selected')) {
+                            this.classList.remove('selected');
+                            selectedFoods.vegetable = selectedFoods.vegetable.filter(v => v !== value);
+                        } else {
+                            if (selectedFoods.vegetable.length < 3) {
+                                this.classList.add('selected');
+                                selectedFoods.vegetable.push(value);
+                            } else {
+                                alert('最多選擇3種蔬菜');
+                            }
+                        }
+                    } else {
+                        // 其他類型單選
+                        document.querySelectorAll(`[data-type="${type}"]`).forEach(i => i.classList.remove('selected'));
+                        this.classList.add('selected');
+                        selectedFoods[type] = value;
+                        healthScores[type] = healthScore;
+                        heartScores[type] = heartScore;
+                    }
+                });
+            });
+            
+            // 計算健康評分
+            function calculateHealthScore() {
+                // 計算蔬菜分數 (平均值)
+                let vegetableScore = 0;
+                let vegetableHeartScore = 0;
+                let deepColorVegetableCount = 0;
+                
+                selectedFoods.vegetable.forEach(veg => {
+                    const vegElement = document.querySelector(`[data-type="vegetable"][data-value="${veg}"]`);
+                    const score = parseInt(vegElement.getAttribute('data-health'));
+                    const heartScore = parseInt(vegElement.getAttribute('data-heart'));
+                    vegetableScore += score;
+                    vegetableHeartScore += heartScore;
+                    
+                    // 檢查是否為深色蔬菜
+                    if (vegElement.querySelector('span').textContent.includes('深色')) {
+                        deepColorVegetableCount++;
+                    }
+                });
+                
+                // 如果有選擇蔬菜，計算平均分數
+                if (selectedFoods.vegetable.length > 0) {
+                    vegetableScore = vegetableScore / selectedFoods.vegetable.length;
+                    vegetableHeartScore = vegetableHeartScore / selectedFoods.vegetable.length;
+                    
+                    // 如果深色蔬菜佔比超過1/3，加分
+                    if (deepColorVegetableCount / selectedFoods.vegetable.length >= 1/3) {
+                        vegetableScore = Math.min(10, vegetableScore + 1);
+                        vegetableHeartScore = Math.min(10, vegetableHeartScore + 1);
+                    }
+                }
+                
+                healthScores.vegetable = Math.round(vegetableScore);
+                heartScores.vegetable = Math.round(vegetableHeartScore);
+                
+                // 計算總分 (各項平均)
+                const totalScore = Math.round(
+                    (healthScores.staple + 
+                     healthScores.vegetable + 
+                     healthScores.protein + 
+                     healthScores.fruit + 
+                     healthScores.drink) / 5 * 10
+                );
+                
+                // 計算心血管健康分數 (各項平均)
+                const heartScore = Math.round(
+                    (heartScores.staple + 
+                     heartScores.vegetable + 
+                     heartScores.protein + 
+                     heartScores.fruit + 
+                     heartScores.drink) / 5 * 10
+                );
+                
+                // 更新UI
+                document.getElementById('total-score').textContent = totalScore;
+                document.getElementById('staple-score').textContent = `${healthScores.staple}/10`;
+                document.getElementById('vegetable-score').textContent = `${healthScores.vegetable}/10`;
+                document.getElementById('protein-score').textContent = `${healthScores.protein}/10`;
+                document.getElementById('fruit-score').textContent = `${healthScores.fruit}/10`;
+                document.getElementById('drink-score').textContent = `${healthScores.drink}/10`;
+                document.getElementById('heart-score').textContent = heartScore;
+                
+                // 更新進度條
+                document.querySelectorAll('.progress-bar')[0].style.width = `${totalScore}%`;
+                document.querySelectorAll('.progress-bar')[1].style.width = `${healthScores.staple * 10}%`;
+                document.querySelectorAll('.progress-bar')[2].style.width = `${healthScores.vegetable * 10}%`;
+                document.querySelectorAll('.progress-bar')[3].style.width = `${healthScores.protein * 10}%`;
+                document.querySelectorAll('.progress-bar')[4].style.width = `${healthScores.fruit * 10}%`;
+                document.querySelectorAll('.progress-bar')[5].style.width = `${healthScores.drink * 10}%`;
+                document.querySelectorAll('.progress-bar')[6].style.width = `${heartScore}%`;
+                
+                // 更新心血管健康進度條顏色
+                if (heartScore >= 80) {
+                    document.querySelectorAll('.progress-bar')[6].classList.remove('bg-[#e76f51]', 'bg-[#e09f3e]');
+                    document.querySelectorAll('.progress-bar')[6].classList.add('bg-[#4a7c59]');
+                } else if (heartScore >= 60) {
+                    document.querySelectorAll('.progress-bar')[6].classList.remove('bg-[#e76f51]', 'bg-[#4a7c59]');
+                    document.querySelectorAll('.progress-bar')[6].classList.add('bg-[#e09f3e]');
+                } else {
+                    document.querySelectorAll('.progress-bar')[6].classList.remove('bg-[#4a7c59]', 'bg-[#e09f3e]');
+                    document.querySelectorAll('.progress-bar')[6].classList.add('bg-[#e76f51]');
+                }
+                
+                // 更新健康建議
+                updateHealthAdvice(totalScore);
+                
+                // 更新心血管健康建議
+                updateHeartAdvice(heartScore);
+            }
+            
+            // 更新健康建議
+            function updateHealthAdvice(score) {
+                let advice = '';
+                
+                if (score >= 90) {
+                    advice = '您的餐盤非常均衡！主食選擇了全穀類，蔬菜選擇了深色蔬菜，蛋白質選擇了優質來源，並且有水果和乳製品。繼續保持這樣的飲食習慣！';
+                } else if (score >= 70) {
+                    advice = '您的餐盤相當不錯！有幾個小地方可以改進：';
+                    
+                    if (healthScores.staple < 8) {
+                        advice += '可以選擇更多全穀類主食；';
+                    }
+                    
+                    if (healthScores.vegetable < 8) {
+                        advice += '可以增加深色蔬菜的比例；';
+                    }
+                    
+                    if (healthScores.protein < 8) {
+                        advice += '可以選擇更優質的蛋白質來源，如豆類或魚類；';
+                    }
+                    
+                    if (healthScores.fruit < 8) {
+                        advice += '建議每餐都攝取適量水果；';
+                    }
+                    
+                    if (healthScores.drink < 8) {
+                        advice += '可以選擇牛奶或無糖優格等乳製品；';
+                    }
+                } else if (score >= 50) {
+                    advice = '您的餐盤還有改進空間。建議：';
+                    
+                    if (healthScores.staple < 7) {
+                        advice += '選擇全穀類主食代替精製穀類；';
+                    }
+                    
+                    if (healthScores.vegetable < 7 || selectedFoods.vegetable.length < 2) {
+                        advice += '增加蔬菜的種類和份量，特別是深色蔬菜；';
+                    }
+                    
+                    if (healthScores.protein < 7) {
+                        advice += '優先選擇豆類、魚類等優質蛋白質；';
+                    }
+                    
+                    if (healthScores.fruit < 7) {
+                        advice += '每餐應攝取一份水果；';
+                    }
+                    
+                    if (healthScores.drink < 7) {
+                        advice += '避免含糖飲料，選擇乳製品或白開水；';
+                    }
+                } else {
+                    advice = '您的餐盤需要重大調整以符合健康餐盤原則：';
+                    advice += '1. 每天早晚一杯奶；';
+                    advice += '2. 每餐水果拳頭大；';
+                    advice += '3. 菜比水果多一點；';
+                    advice += '4. 飯跟蔬菜一樣多；';
+                    advice += '5. 豆魚蛋肉一掌心；';
+                    advice += '6. 堅果種子一茶匙。';
+                }
+                
+                document.getElementById('health-advice').textContent = advice;
+            }
+            
+            // 更新心血管健康建議
+            function updateHeartAdvice(score) {
+                let advice = '';
+                
+                if (score >= 90) {
+                    advice = '您的餐盤對心血管健康非常有益！選擇了全穀類、深色蔬菜、優質蛋白質和水果，這些食物富含抗氧化物質和健康脂肪，有助於降低心血管疾病風險。';
+                } else if (score >= 70) {
+                    advice = '您的餐盤對心血管健康有一定幫助，但還可以改進：';
+                    
+                    if (heartScores.staple < 8) {
+                        advice += '選擇全穀類主食可以提供更多膳食纖維，有助於降低膽固醇；';
+                    }
+                    
+                    if (heartScores.vegetable < 8) {
+                        advice += '增加深色蔬菜攝取，提供更多抗氧化物質；';
+                    }
+                    
+                    if (heartScores.protein < 8) {
+                        advice += '選擇魚類、豆類等蛋白質來源，減少紅肉攝取；';
+                    }
+                    
+                    if (heartScores.fruit < 8) {
+                        advice += '增加水果攝取，特別是莓果類水果；';
+                    }
+                    
+                    if (heartScores.drink < 8) {
+                        advice += '避免含糖飲料，選擇無糖茶或水；';
+                    }
+                } else if (score >= 50) {
+                    advice = '您的餐盤對心血管健康的幫助有限，建議：';
+                    
+                    if (heartScores.staple < 7) {
+                        advice += '用全穀類代替精製穀物，降低血糖波動；';
+                    }
+                    
+                    if (heartScores.vegetable < 7) {
+                        advice += '增加蔬菜攝取，特別是深綠色和橙色蔬菜；';
+                    }
+                    
+                    if (heartScores.protein < 7) {
+                        advice += '減少紅肉和加工肉品，增加魚類和豆類攝取；';
+                    }
+                    
+                    if (heartScores.fruit < 7) {
+                        advice += '每天攝取2-3份水果，提供抗氧化物質；';
+                    }
+                    
+                    if (heartScores.drink < 7) {
+                        advice += '避免含糖飲料，選擇水或無糖茶；';
+                    }
+                } else {
+                    advice = '您的餐盤可能增加心血管疾病風險，建議重大調整：';
+                    advice += '1. 選擇全穀類主食，避免精製穀物；';
+                    advice += '2. 每天攝取至少5份蔬果；';
+                    advice += '3. 選擇健康蛋白質來源，如魚類、豆類；';
+                    advice += '4. 減少飽和脂肪和反式脂肪攝取；';
+                    advice += '5. 限制鹽分和糖分攝取；';
+                    advice += '6. 增加富含Omega-3脂肪酸的食物。';
+                }
+                
+                document.getElementById('heart-advice').textContent = advice;
+            }
+            
+            // 更新餐盤視覺化
+            function updatePlateVisualization() {
+                // 更新用餐時間顯示
+                let mealTimeText = '';
+                switch(selectedMeal) {
+                    case 'breakfast':
+                        mealTimeText = '早餐';
+                        break;
+                    case 'lunch':
+                        mealTimeText = '午餐';
+                        break;
+                    case 'dinner':
+                        mealTimeText = '晚餐';
+                        break;
+                }
+                document.getElementById('meal-time-display').textContent = `用餐時間：${mealTimeText}`;
+                
+                // 更新餐盤組成
+                let stapleText = '';
+                if (selectedFoods.staple) {
+                    const stapleElement = document.querySelector(`[data-type="staple"][data-value="${selectedFoods.staple}"]`);
+                    stapleText = stapleElement.querySelector('h4').textContent;
+                }
+                
+                let vegetableText = '';
+                if (selectedFoods.vegetable.length > 0) {
+                    vegetableText = selectedFoods.vegetable.map(veg => {
+                        const vegElement = document.querySelector(`[data-type="vegetable"][data-value="${veg}"]`);
+                        return vegElement.querySelector('h4').textContent;
+                    }).join('、');
+                }
+                
+                let proteinText = '';
+                if (selectedFoods.protein) {
+                    const proteinElement = document.querySelector(`[data-type="protein"][data-value="${selectedFoods.protein}"]`);
+                    proteinText = proteinElement.querySelector('h4').textContent;
+                }
+                
+                let fruitText = '';
+                if (selectedFoods.fruit) {
+                    const fruitElement = document.querySelector(`[data-type="fruit"][data-value="${selectedFoods.fruit}"]`);
+                    fruitText = fruitElement.querySelector('h4').textContent;
+                }
+                
+                let drinkText = '';
+                if (selectedFoods.drink) {
+                    const drinkElement = document.querySelector(`[data-type="drink"][data-value="${selectedFoods.drink}"]`);
+                    drinkText = drinkElement.querySelector('h4').textContent;
+                }
+                
+                document.getElementById('meal-composition').innerHTML = `
+                    主食：${stapleText}<br>
+                    蔬菜：${vegetableText}<br>
+                    蛋白質：${proteinText}<br>
+                    水果：${fruitText}<br>
+                    飲品：${drinkText}
+                `;
+                
+                // 根據健康分數調整餐盤視覺比例
+                const plateStaple = document.getElementById('plate-staple');
+                const plateVegetable = document.getElementById('plate-vegetable');
+                const plateProtein = document.getElementById('plate-protein');
+                const plateFruit = document.getElementById('plate-fruit');
+                
+                // 調整主食和蔬菜的比例 (健康餐盤原則：飯跟蔬菜一樣多)
+                if (healthScores.staple >= 8) {
+                    plateStaple.style.height = '40%';
+                    plateStaple.style.width = '40%';
+                    plateVegetable.style.height = '40%';
+                    plateVegetable.style.width = '40%';
+                } else {
+                    plateStaple.style.height = '50%';
+                    plateStaple.style.width = '50%';
+                    plateVegetable.style.height = '30%';
+                    plateVegetable.style.width = '30%';
+                }
+                
+                // 調整蛋白質的比例 (健康餐盤原則：豆魚蛋肉一掌心)
+                if (healthScores.protein >= 8) {
+                    plateProtein.style.height = '30%';
+                    plateProtein.style.width = '30%';
+                } else {
+                    plateProtein.style.height = '40%';
+                    plateProtein.style.width = '40%';
+                }
+                
+                // 調整水果的比例 (健康餐盤原則：每餐水果拳頭大)
+                if (healthScores.fruit >= 8) {
+                    plateFruit.style.height = '20%';
+                    plateFruit.style.width = '80%';
+                } else if (selectedFoods.fruit === 'none') {
+                    plateFruit.style.height = '0%';
+                    plateFruit.style.width = '0%';
+                } else {
+                    plateFruit.style.height = '30%';
+                    plateFruit.style.width = '90%';
+                }
+            }
+            
+            // 初始化顯示
+            showStep(currentStep);
+        });
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9af6ec2da2bf3309',t:'MTc2NTk3OTc3My4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
