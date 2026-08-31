@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>國中自然 1-1 與 1-2 單元測驗</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        /* 自訂選項被選取時的樣式，提升點擊回饋感 */
+        .option-label input:checked + div {
+            background-color: #e0f2fe;
+            border-color: #38bdf8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+
+    <div class="max-w-4xl mx-auto p-4 md:p-8">
+        <!-- 標題區塊 -->
+        <div class="bg-white rounded-2xl shadow-md p-6 mb-6 border-t-8 border-blue-500">
+            <h1 class="text-3xl font-bold text-center text-gray-800 mb-2">國中自然 1上 單元測驗</h1>
+            <p class="text-center text-gray-500">範圍：1-1 多彩多姿的生命世界、1-2 探究自然的科學方法</p>
+            <p class="text-center text-blue-600 font-semibold mt-2">共 20 題選擇題，每題 5 分，滿分 100 分</p>
+        </div>
+
+        <form id="quizForm" class="space-y-6">
+            <!-- 學生資料填寫區 -->
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <h2 class="text-xl font-bold text-gray-800 mb-4 border-b pb-2">✏️ 基本資料</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label for="className" class="block text-sm font-medium text-gray-700 mb-1">班級</label>
+                        <input type="text" id="className" name="className" required placeholder="例：701" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label for="seatNumber" class="block text-sm font-medium text-gray-700 mb-1">座號</label>
+                        <input type="number" id="seatNumber" name="seatNumber" required placeholder="例：15" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    </div>
+                    <div>
+                        <label for="studentName" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                        <input type="text" id="studentName" name="studentName" required placeholder="例：王小明" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition">
+                    </div>
+                </div>
+            </div>
+
+            <!-- 測驗題目生成區 -->
+            <div id="questionsContainer" class="space-y-6"></div>
+
+            <!-- 提交按鈕 -->
+            <div class="text-center pb-12">
+                <button type="submit" id="submitBtn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-10 rounded-full text-lg shadow-lg transform transition hover:scale-105 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed">
+                    📤 送出試卷
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // 您的 GAS 網頁應用程式網址
+        const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyoGK6vkBtIbQxg9fPtho_7Cc5K87rCcuGNvDgUgxNq2IQ9dF-WnUZ2TbxChSO22WToxw/exec";
+
+        // 題目資料庫 (共 20 題，嚴格對應課本內容)
+        const quizData = [
+            {
+                q: "自然界中，下列何者屬於能表現出生命現象的個體？",
+                options: ["鐘乳石", "珊瑚礁的岩石", "莫氏樹蛙", "水"],
+                ans: 2
+            },
+            {
+                q: "依據 108 課綱，對於生命現象的描述，下列何者「不」單獨列為四大表現之一？",
+                options: ["代謝", "單純移動", "生長與發育", "生殖"],
+                ans: 1
+            },
+            {
+                q: "地球孕育出多樣的生物，是因為擁有了生物生存所需要的資源。下列何者為生存必備條件？",
+                options: ["陽光、空氣、水、塑膠微粒", "陽光、空氣、水、養分", "只有陽光和水", "空氣、水、土壤、岩石"],
+                ans: 1
+            },
+            {
+                q: "關於「生物圈」的敘述，下列何者正確？",
+                options: ["生物圈範圍是固定永遠不變的", "大約在海平面垂直上下各一萬公尺之間", "包含了地球的全部", "深海海溝因為水壓極大，完全不屬於生物圈"],
+                ans: 1
+            },
+            {
+                q: "生物大多生存在靠近地表及淺水的環境裡（如熱帶雨林和珊瑚礁），主要原因為何？",
+                options: ["氣壓最高", "溫暖且水分充足", "沒有天敵", "充滿二氧化碳"],
+                ans: 1
+            },
+            {
+                q: "生物為了適應環境會有特殊的構造。下列配對何者「錯誤」？",
+                options: ["北極熊－皮下脂肪防止體熱散失", "仙人掌－針狀葉減少水分散失", "枯葉蝶－翅膀似枯葉隱藏在環境中", "耐熱細菌－生活在冰冷的極地"],
+                ans: 3
+            },
+            {
+                q: "有關「科學方法」的流程，第一步通常是什麼？",
+                options: ["提出問題", "形成假說", "觀察", "設計與進行實驗"],
+                ans: 2
+            },
+            {
+                q: "觀察吐司發霉的現象後，想了解「吐司發霉是否和環境的溫度有關？」這是科學方法中的哪個步驟？",
+                options: ["觀察", "提出問題", "形成假說", "分析實驗結果"],
+                ans: 1
+            },
+            {
+                q: "在設計「吐司發霉與溫度的關係」實驗時，放入冰箱（4°C）的吐司是主要觀察對象，它屬於下列何者？",
+                options: ["實驗組", "對照組", "控制組", "無效組"],
+                ans: 0
+            },
+            {
+                q: "在科學實驗中，實驗組與對照組中「不同」的因素（例如溫度），我們稱之為何？",
+                options: ["實驗變因", "應變變因", "操作變因", "控制變因"],
+                ans: 2
+            },
+            {
+                q: "在探討「吐司發霉與溫度的關係」實驗中，吐司的大小、溼度必須保持相同，這些必須相同的因素稱為？",
+                options: ["操作變因", "控制變因", "應變變因", "外在變因"],
+                ans: 1
+            },
+            {
+                q: "如果實驗結果和假說不符（不支持假說），接下來該怎麼做最符合科學精神？",
+                options: ["修改實驗數據使其符合", "重新檢視並修正假說後再次實驗", "直接提出該假說為真", "放棄該現象的研究"],
+                ans: 1
+            },
+            {
+                q: "關於假說與學說的關係，下列敘述何者正確？",
+                options: ["假說提出後就直接變成學說", "假說經過多次實驗探討和證實後，可成為學說", "學說一旦成立，就永遠不會被修改或推翻", "兩者完全沒有關聯"],
+                ans: 1
+            },
+            {
+                q: "生石花（俗稱石頭玉）外表長得像石頭，但經過一段時間會長大並開花。請問判斷它是生物的依據為何？",
+                options: ["它不會移動", "它看起來像非生物", "表現出生長與發育及生殖等生命現象", "它不需要水分也能存活"],
+                ans: 2
+            },
+            {
+                q: "在進行科學實驗前，查詢具公信力的書籍或網路資料，了解相關知識。這是科學方法的哪一個步驟？",
+                options: ["觀察", "參考文獻資料", "提出問題", "提出結論"],
+                ans: 1
+            },
+            {
+                q: "關於生命現象中「代謝」的敘述，下列何者正確？",
+                options: ["生物能察覺環境變化產生反應", "生物體積隨時間增大", "分解食物中的養分，合成身體所需的物質", "透過生殖產生新個體"],
+                ans: 2
+            },
+            {
+                q: "進行實驗時設立「對照組」的主要目的為何？",
+                options: ["增加實驗的複雜度", "作為與實驗組比較的基準", "確保一定會產生化學反應", "消耗多餘的材料"],
+                ans: 1
+            },
+            {
+                q: "「尺蠖的外形似樹枝」，這是生物為了因應環境而發展出的生存策略，其主要目的為何？",
+                options: ["增加行光合作用的面積", "減少水分的散失", "減少被捕食者或獵物發現的機會", "增加尋找配偶的機會"],
+                ans: 2
+            },
+            {
+                q: "若把地球比喻為一顆蘋果，生物圈的範圍大約相當於蘋果的哪一部分？",
+                options: ["果核", "果肉", "蘋果的果皮", "整顆蘋果"],
+                ans: 2
+            },
+            {
+                q: "對某一現象提出可能的合理解釋，並且能進行科學實驗加以驗證，這在科學方法中稱為？",
+                options: ["提出問題", "提出結論", "分析結果", "形成假說"],
+                ans: 3
+            }
+        ];
+
+        // 畫面載入時自動生成題目
+        document.addEventListener('DOMContentLoaded', () => {
+            const container = document.getElementById('questionsContainer');
+            
+            quizData.forEach((item, index) => {
+                const questionDiv = document.createElement('div');
+                questionDiv.className = 'bg-white rounded-2xl shadow-sm p-6 border border-gray-100 hover:shadow-md transition duration-300';
+                
+                // 題目文字
+                const qTitle = document.createElement('h3');
+                qTitle.className = 'text-lg font-medium text-gray-800 mb-4 leading-relaxed';
+                qTitle.innerHTML = `<span class="inline-block bg-blue-100 text-blue-700 w-8 h-8 rounded-full text-center leading-8 font-bold mr-2">${index + 1}</span> ${item.q}`;
+                questionDiv.appendChild(qTitle);
+
+                // 選項區塊
+                const optionsDiv = document.createElement('div');
+                optionsDiv.className = 'grid grid-cols-1 md:grid-cols-2 gap-3';
+
+                item.options.forEach((optText, optIndex) => {
+                    const label = document.createElement('label');
+                    label.className = 'option-label cursor-pointer relative';
+                    
+                    const input = document.createElement('input');
+                    input.type = 'radio';
+                    input.name = `q${index}`;
+                    input.value = optIndex;
+                    input.required = true;
+                    input.className = 'absolute opacity-0 w-0 h-0'; // 隱藏原生 radio
+
+                    const visualDiv = document.createElement('div');
+                    visualDiv.className = 'flex items-center p-3 border border-gray-200 rounded-xl hover:bg-gray-50 transition';
+                    visualDiv.innerHTML = `<span class="w-6 h-6 mr-3 rounded-full border-2 border-gray-300 flex-shrink-0 flex items-center justify-center text-sm font-semibold text-gray-500">${String.fromCharCode(65 + optIndex)}</span><span class="text-gray-700">${optText}</span>`;
+
+                    label.appendChild(input);
+                    label.appendChild(visualDiv);
+                    optionsDiv.appendChild(label);
+                });
+
+                questionDiv.appendChild(optionsDiv);
+                container.appendChild(questionDiv);
+            });
+        });
+
+        // 處理表單送出
+        document.getElementById('quizForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            
+            // 收集基本資料
+            const className = document.getElementById('className').value.trim();
+            const seatNumber = document.getElementById('seatNumber').value.trim();
+            const studentName = document.getElementById('studentName').value.trim();
+            
+            // 收集作答資料並計算分數
+            let score = 0;
+            const details = [];
+            const formData = new FormData(this);
+
+            quizData.forEach((item, index) => {
+                const selectedValue = parseInt(formData.get(`q${index}`));
+                const isCorrect = (selectedValue === item.ans);
+                if (isCorrect) score += 5; // 每題 5 分
+
+                details.push({
+                    question: index + 1,
+                    selected: selectedValue !== null ? String.fromCharCode(65 + selectedValue) : '未作答',
+                    correct: isCorrect
+                });
+            });
+
+            // 準備傳送給 GAS 的 JSON 資料
+            const payload = {
+                class: className,
+                number: seatNumber,
+                name: studentName,
+                score: score,
+                details: details
+            };
+
+            // 鎖定按鈕，顯示載入狀態
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `⏳ 正在上傳資料...`;
+
+            try {
+                // 發送 POST 請求到 Google Apps Script
+                const response = await fetch(GAS_WEB_APP_URL, {
+                    method: 'POST',
+                    // 設定 text/plain 避免觸發 CORS 預檢請求 (Preflight)
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                if (result.status === "success") {
+                    // 使用 SweetAlert 顯示友善的成功畫面及分數
+                    Swal.fire({
+                        title: '交卷成功！',
+                        text: `${studentName} 同學，您的得分是 ${score} 分。`,
+                        icon: 'success',
+                        confirmButtonText: '確定',
+                        confirmButtonColor: '#3085d6',
+                        allowOutsideClick: false
+                    }).then(() => {
+                        // 重新整理頁面，準備給下一位作答
+                        window.scrollTo(0,0);
+                        document.getElementById('quizForm').reset();
+                    });
+                } else {
+                    throw new Error(result.message || "伺服器未回傳成功狀態");
+                }
+            } catch (error) {
+                console.error("提交錯誤:", error);
+                Swal.fire({
+                    title: '上傳失敗',
+                    text: '請檢查網路連線後再試一次。',
+                    icon: 'error',
+                    confirmButtonText: '關閉'
+                });
+            } finally {
+                // 恢復按鈕狀態
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `📤 送出試卷`;
+            }
+        });
+    </script>
+</body>
+</html>
